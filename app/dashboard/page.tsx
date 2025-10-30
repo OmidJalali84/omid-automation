@@ -14,6 +14,17 @@ type StatusConfig = {
   actionLink: string;
   disabled: boolean;
 };
+type Meal = {
+  id: number;
+  type: string;
+  restaurant: string;
+  key?: string;
+  status: MealStatus;
+  time: string;
+  location: string;
+  orderId?: string;
+};
+
 
 const statusConfigs: Record<MealStatus, StatusConfig> = {
   'آماده سفارش': {
@@ -103,7 +114,7 @@ export default function DashboardPage() {
     avatar: 'م'
   };
 
-  const todayMeals = currentUser?.meals || [
+  const todayMeals: Meal[] = currentUser?.meals || [
     { id: 1, type: 'صبحانه', restaurant: 'امیرالمومنین', status: 'خورده شده' as MealStatus, time: '07:00 - 09:00', location: 'سلف سرویس خوابگاه', orderId: 'ORD-2024-001234' },
     { id: 2, type: 'ناهار', restaurant: 'رستوران کاکتوس', status: 'خارج از وعده' as MealStatus, time: '11:45 - 15:15', location: 'بلوار دانشگاه' },
     { id: 3, type: 'شام', restaurant: 'امیرالمومنین', status: 'آماده سفارش' as MealStatus, time: '18:00 - 21:00', location: 'سلف سرویس خوابگاه' }
@@ -186,7 +197,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {todayMeals.map((meal) => {
+          {todayMeals.map((meal: Meal) => {
               const config = statusConfigs[meal.status];
               const isDisabled = config.disabled;
               
