@@ -1,7 +1,7 @@
 "use client";
 
 import Link from 'next/link';
-import { restaurantList } from '../menu/data/restaurants';
+import { restaurantList } from '../menue/data/restaurants';
 
 export default function FreeOrderSelectPage() {
   return (

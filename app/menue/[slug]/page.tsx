@@ -2,62 +2,42 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
+import { restaurants, type RestaurantKey } from '../data/restaurants';
 
-export default function RestaurantMenu() {
-  type Category = 'برنجی' | 'نوشیدنی' | 'سالاد';
-  type MenuItem = { id: number; name: string; price: number; image: string; available: boolean };
-  type MenuMap = Record<Category, MenuItem[]>;
-  const [activeCategory, setActiveCategory] = useState<Category>('برنجی');
-  const [cart, setCart] = useState<Record<number, number>>({});
-  const router = useRouter();
-
-  const restaurant = {
-    name: 'رستوران مرکزی',
-    description: 'سلف سرویس اصلی دانشگاه با ظرفیت بالا و سرویس‌دهی سریع.'
-  };
-
-  const categories: Category[] = ['برنجی', 'نوشیدنی', 'سالاد'];
-
-  const menuItems: MenuMap = {
-    'برنجی': [
-      { id: 1, name: 'چلوکباب کوبیده', price: 160000, image: '🍖', available: true },
-      { id: 2, name: 'زرشکپلو با مرغ', price: 145000, image: '🍗', available: false },
-      { id: 3, name: 'چلوخورش کرفس', price: 130000, image: '🍲', available: true },
-      { id: 4, name: 'چلو ماهی قزل‌آلا', price: 210000, image: '🐟', available: true },
-    ],
-    'نوشیدنی': [
-      { id: 5, name: 'نوشابه', price: 25000, image: '🥤', available: true },
-      { id: 6, name: 'دوغ', price: 20000, image: '🥛', available: true },
-      { id: 7, name: 'آب معدنی', price: 15000, image: '💧', available: true },
-    ],
-    'سالاد': [
-      { id: 8, name: 'سالاد فصل', price: 35000, image: '🥗', available: true },
-      { id: 9, name: 'سالاد شیرازی', price: 30000, image: '🍅', available: true },
-    ]
-  };
-
+export default function FreeOrderRestaurantPage() {
   const jettonWorth = 70000;
 
-  const addToCart = (itemId: number) => {
-    setCart(prev => ({ ...prev, [itemId]: (prev[itemId] || 0) + 1 }));
-  };
+  type Category = 'برنجی' | 'نوشیدنی' | 'سالاد';
+  const categories: Category[] = ['برنجی', 'نوشیدنی', 'سالاد'];
+  type MenuItem = { id: number; name: string; price: number; image: string; available: boolean };
+  const [activeCategory, setActiveCategory] = useState<Category>('برنجی');
+  const params = useParams();
+  const router = useRouter();
+  const key = String(params?.slug || '') as RestaurantKey;
+  const restaurant = restaurants[key];
 
-  const removeFromCart = (itemId: number) => {
-    setCart(prev => {
-      const newCart = { ...prev };
-      if (newCart[itemId] > 0) {
-        newCart[itemId] -= 1;
-        if (newCart[itemId] === 0) delete newCart[itemId];
-      }
-      return newCart;
-    });
-  };
+  const [cart, setCart] = useState<Record<number, number>>({});
 
+  const addToCart = (id: number) => setCart(prev => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
+  const removeFromCart = (id: number) => setCart(prev => {
+    const next = { ...prev };
+    if (next[id] > 0) {
+      next[id] -= 1;
+      if (next[id] === 0) delete next[id];
+    }
+    return next;
+  });
+
+  const items = restaurant?.items || {};
+  
+  // Get all items from all categories
+  const allItems = Object.values(items).flat() as MenuItem[];
+  
   const getCartTotal = () => {
     let total = 0;
     Object.entries(cart).forEach(([itemId, qty]) => {
-      const item = Object.values(menuItems).flat().find((i: MenuItem) => i.id === parseInt(itemId));
+      const item = allItems.find((i: MenuItem) => i.id === parseInt(itemId));
       if (item) total += item.price * (qty as number);
     });
     return total;
@@ -65,13 +45,44 @@ export default function RestaurantMenu() {
 
   const cartItems: Array<MenuItem & { qty: number }> = Object.entries(cart)
     .map(([itemId, qty]) => {
-      const item = Object.values(menuItems).flat().find((i: MenuItem) => i.id === parseInt(itemId));
-      return item ? { ...item, qty: qty as number } : (undefined as unknown as MenuItem & { qty: number });
+      const item = allItems.find((i: MenuItem) => i.id === parseInt(itemId));
+      return item ? { ...item, qty: qty as number } : null;
     })
     .filter(Boolean) as Array<MenuItem & { qty: number }>;
 
   const total = getCartTotal();
   const payable = Math.max(0, total - jettonWorth);
+
+  const handleCheckout = () => {
+    if (cartItems.length === 0) return;
+
+    // ذخیره اطلاعات سفارش در sessionStorage
+    const orderData = {
+      restaurant: restaurant.name,
+      restaurantId: key,
+      items: cartItems.map(item => ({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        qty: item.qty,
+        image: item.image
+      })),
+      total,
+      jettonWorth,
+      payable
+    };
+
+    sessionStorage.setItem('checkoutOrder', JSON.stringify(orderData));
+    router.push('/checkout');
+  };
+
+  if (!restaurant) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-white">
+        رستوران یافت نشد
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
@@ -101,7 +112,7 @@ export default function RestaurantMenu() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* Menu Section */}
+          {/* menue Section */}
           <div className="flex-1">
             <div className="bg-slate-800/50 backdrop-blur-xl rounded-3xl p-6 border border-slate-700/50 mb-6">
               <h1 className="text-3xl font-bold text-white mb-2">{restaurant.name}</h1>
@@ -127,12 +138,12 @@ export default function RestaurantMenu() {
               </div>
             </div>
 
-            {/* Menu Items by Category */}
+            {/* menue Items by Category */}
             {categories.map((cat) => (
               <div key={cat} className="mb-8">
                 <h2 className="text-2xl font-bold text-white mb-4">{cat}</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {menuItems[cat].map((item) => (
+                  {(items[cat] || []).map((item) => (
                     <div
                       key={item.id}
                       className={`bg-gradient-to-br from-slate-800/80 to-slate-800/40 backdrop-blur-xl rounded-2xl p-5 border ${
@@ -239,7 +250,7 @@ export default function RestaurantMenu() {
 
               <div className="mt-6 space-y-3">
                 <button
-                  onClick={() => router.push('/checkout')}
+                  onClick={handleCheckout}
                   disabled={cartItems.length === 0}
                   className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 disabled:opacity-30 disabled:cursor-not-allowed text-white py-4 rounded-xl font-bold text-lg transition-all shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50"
                 >

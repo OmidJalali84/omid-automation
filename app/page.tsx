@@ -1,68 +1,178 @@
 "use client";
-import React, { useState } from "react";
-import Link from "next/link";
 
-const meals = [
-  { id: 1, meal: "صبحانه", name: "املت تخم مرغ" },
-  { id: 2, meal: "ناهار", name: "چلو جوجه کباب" },
-  { id: 3, meal: "شام", name: "خورش قیمه" },
-];
+import { useState } from 'react';
+import Link from 'next/link';
 
-export default function StudentDashboard() {
-  const [mealTab, setMealTab] = useState(1);
+export default function LoginPage() {
+  const [studentId, setStudentId] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleLogin = () => {
+    setError('');
+    setIsLoading(true);
+
+    setTimeout(() => {
+      // شبیه‌سازی ورود با mockUsers
+      // در پروژه واقعی از authenticateUser استفاده کنید
+      if (studentId && password === '1234') {
+        // ذخیره studentId در localStorage
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('currentStudentId', studentId);
+        }
+        window.location.href = '/dashboard';
+      } else {
+        setError('شماره دانشجویی یا رمز عبور اشتباه است');
+        setIsLoading(false);
+      }
+    }, 1500);
+  };
+
   return (
-    <div className="max-w-4xl mx-auto py-8 flex flex-col gap-8">
-      {/* Welcome Section */}
-      <div className="relative rounded-2xl bg-gradient-to-tr from-indigo-500/40 via-blue-400/20 to-cyan-400/20 dark:from-indigo-900/40 dark:via-blue-800/20 dark:to-cyan-900/10 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6 px-7 py-8 overflow-hidden border border-blue-300/20 dark:border-indigo-500/10">
-        <div className="flex-1 min-w-[220px]">
-          <h2 className="text-2xl md:text-3xl font-extrabold text-blue-900 dark:text-blue-100 mb-1 drop-shadow-lg">سلام 👋 دانشجوی عزیز</h2>
-          <p className="text-blue-950/80 dark:text-blue-100/80 text-base font-medium">وضعیت رزرواسیون غذاهای امروز و ابزارهای سریع همینجاست!</p>
-        </div>
-        <div className="flex flex-col gap-2 items-center min-w-[210px]">
-          <Link href="/menu" className="bg-gradient-to-r from-blue-500 via-violet-500 to-cyan-400 px-7 py-2 rounded-xl text-white font-bold text-base shadow-xl hover:shadow-2xl hover:scale-105 transition">رزرو غذای جدید</Link>
-          <Link href="/orders" className="bg-white/80 hover:bg-blue-50 border border-blue-200 text-blue-700 font-bold py-2 rounded-xl transition shadow-md mt-1 px-5">سفارش‌های من</Link>
-        </div>
-        {/* Blurred Glass Animation */}
-        <div className="absolute -left-16 -top-16 w-40 h-40 bg-gradient-to-br from-blue-400/30 via-cyan-400/50 to-violet-500/20 blur-3xl rounded-full opacity-30 pointer-events-none animate-pulse-slow" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl"></div>
       </div>
-      {/* Tab for Meals (BreakFast/Lunch/Dinner) */}
-      <div className="bg-white/70 dark:bg-gray-900/70 rounded-2xl shadow-xl border border-blue-200/30 p-6 flex flex-col gap-5 backdrop-blur-md">
-        <div className="flex justify-center gap-4 mb-4">
-          {meals.map((tab, idx) => (
-            <button
-              key={tab.id}
-              onClick={() => setMealTab(tab.id)}
-              className={
-                "px-5 py-2 rounded-xl text-base font-bold transition " +
-                (mealTab === tab.id
-                  ? "bg-gradient-to-r from-blue-500 to-violet-400 text-white shadow"
-                  : "bg-transparent text-blue-700 dark:text-blue-200 hover:bg-blue-50 dark:hover:bg-blue-950/60")
-              }
-            >
-              {tab.meal}
-            </button>
-          ))}
+
+      <div className="relative max-w-md w-full">
+        <div className="text-center mb-8">
+          <div className="w-20 h-20 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-2xl shadow-emerald-500/50">
+            <span className="text-4xl">🍴</span>
+          </div>
+          <h1 className="text-3xl font-bold text-white mb-2">سامانه غذای دانشگاه</h1>
+          <p className="text-slate-400">دانشگاه صنعتی سهند</p>
         </div>
-        <div className="flex flex-wrap gap-4 justify-center">
-          {/* Example card for demo purposes per meal */}
-          <div className="w-full max-w-md mx-auto rounded-2xl bg-gradient-to-br from-blue-100/70 via-blue-50/60 to-cyan-100/60 dark:from-blue-900/30 dark:to-indigo-900/40 p-6 flex flex-col gap-3 shadow-xl border border-blue-100/30">
-            <div className="flex items-center gap-4 mb-2">
-              <span className="w-12 h-12 flex items-center justify-center rounded-xl bg-gradient-to-tr from-blue-400 to-violet-500 text-white text-2xl shadow">🍽️</span>
-              <div>
-                <h3 className="text-lg font-extrabold text-blue-800 dark:text-blue-200">{meals.find(t => t.id === mealTab)?.name}</h3>
-                <p className="text-sm text-blue-700/60 dark:text-blue-100/50 font-medium">رستوران مرکزی - ۱۲:۳۰ تا ۱۴:۰۰</p>
+
+        <div className="bg-slate-800/50 backdrop-blur-xl rounded-3xl p-8 border border-slate-700/50 shadow-2xl">
+          <h2 className="text-2xl font-bold text-white mb-6 text-center">ورود به سامانه</h2>
+
+          <div className="space-y-5">
+            <div>
+              <label className="block text-slate-300 text-sm font-medium mb-2">
+                شماره دانشجویی
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={studentId}
+                  onChange={(e) => setStudentId(e.target.value)}
+                  placeholder="401234567"
+                  className="w-full bg-slate-900/50 border border-slate-700/50 rounded-xl px-4 py-3 pr-12 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all"
+                />
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500">
+                  👤
+                </span>
               </div>
             </div>
-            <div className="flex items-center gap-2 my-1">
-              <span className="inline-flex items-center px-2 py-1 rounded-xl text-xs font-semibold bg-green-200 text-green-700">رزرو شما ثبت شده</span>
+
+            <div>
+              <label className="block text-slate-300 text-sm font-medium mb-2">
+                رمز عبور
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="رمز عبور خود را وارد کنید"
+                  className="w-full bg-slate-900/50 border border-slate-700/50 rounded-xl px-4 py-3 pr-12 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all"
+                />
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500">
+                  🔒
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                >
+                  {showPassword ? '👁️' : '👁️‍🗨️'}
+                </button>
+              </div>
             </div>
-            <Link href="/menu" className="mt-3 bg-gradient-to-l from-indigo-500 via-blue-500 to-cyan-400 hover:from-blue-600 hover:to-indigo-700 px-7 py-2.5 rounded-xl text-white font-bold text-base shadow-lg transition text-center">مشاهده منو</Link>
+
+            <div className="flex items-center justify-between text-sm">
+              <label className="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white transition-colors">
+                <input
+                  type="checkbox"
+                  className="w-4 h-4 rounded border-slate-700 bg-slate-900/50"
+                />
+                <span>مرا به خاطر بسپار</span>
+              </label>
+              <a href="#" className="text-emerald-400 hover:text-emerald-300 transition-colors">
+                فراموشی رمز عبور
+              </a>
+            </div>
+
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-center gap-2">
+                <span className="text-red-400">⚠️</span>
+                <p className="text-red-400 text-sm">{error}</p>
+              </div>
+            )}
+
+            <button
+              onClick={handleLogin}
+              disabled={isLoading}
+              className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white py-4 rounded-xl font-bold text-lg transition-all shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 flex items-center justify-center gap-2"
+            >
+              {isLoading ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  <span>در حال ورود...</span>
+                </>
+              ) : (
+                <>
+                  <span>ورود به سامانه</span>
+                  <span>←</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-slate-700/50"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-4 bg-slate-800/50 text-slate-400">یا</span>
+            </div>
+          </div>
+
+          <div className="text-center">
+            <p className="text-slate-400 text-sm">
+              حساب کاربری ندارید؟{' '}
+              <a href="#" className="text-emerald-400 hover:text-emerald-300 font-medium transition-colors">
+                ثبت‌نام کنید
+              </a>
+            </p>
           </div>
         </div>
-      </div>
-      {/* Notice/Help Section */}
-      <div className="rounded-2xl bg-gradient-to-l from-blue-300/10 via-indigo-100/30 to-violet-100/10 dark:from-blue-900/20 dark:via-blue-900/10 dark:to-violet-900/5 shadow-none text-blue-900/90 dark:text-gray-200 text-center text-base py-3 font-medium border border-blue-200/10">
-        در صورت هرگونه مشکل با پشتیبانی رفاهی دانشگاه اطلاع دهید.
+
+        <div className="mt-6 text-center">
+          <p className="text-slate-500 text-sm">
+            برای ورود از شماره دانشجویی و رمز عبور خود استفاده کنید
+          </p>
+          <p className="text-slate-600 text-xs mt-2">
+            در صورت بروز مشکل با پشتیبانی تماس بگیرید
+          </p>
+        </div>
+
+        <div className="mt-8 flex justify-center gap-6 text-sm">
+          <a href="#" className="text-slate-500 hover:text-slate-300 transition-colors">
+            راهنما
+          </a>
+          <span className="text-slate-700">|</span>
+          <a href="#" className="text-slate-500 hover:text-slate-300 transition-colors">
+            پشتیبانی
+          </a>
+          <span className="text-slate-700">|</span>
+          <a href="#" className="text-slate-500 hover:text-slate-300 transition-colors">
+            قوانین
+          </a>
+        </div>
       </div>
     </div>
   );

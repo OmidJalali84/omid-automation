@@ -1,4 +1,4 @@
-export type RestaurantKey = 'kaktos' | 'zitoun' | 'toranj' | 'amiralmomenin';
+export type RestaurantKey = 'kaktus' | 'zitoun' | 'toranj' | 'amiralmomenin';
 
 export type Restaurant = {
   key: RestaurantKey;
@@ -12,8 +12,8 @@ type MenuItem = { id: number; name: string; price: number; image: string; availa
 type MenuMap = Record<Category, MenuItem[]>;
 
 export const restaurants: Record<RestaurantKey, Restaurant> = {
-  kaktos: {
-    key: 'kaktos',
+  kaktus: {
+    key: 'kaktus',
     name: 'کاکتوس',
     description: 'فست‌فود دانشجویی با سرو سریع و تنوع بالا.',
     items: {
