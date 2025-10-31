@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
 import { restaurants, type RestaurantKey } from '../data/restaurants';
@@ -18,6 +18,41 @@ export default function FreeOrderRestaurantPage() {
   const restaurant = restaurants[key];
 
   const [cart, setCart] = useState<Record<number, number>>({});
+
+  const scrollToCategory = (category: Category) => {
+    const element = document.getElementById(`category-${category}`);
+    if (element) {
+      const offset = 180; // Account for sticky header and category pills
+      const elementPosition = element.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - offset;
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+      setActiveCategory(category);
+    }
+  };
+
+  // Detect which category is in view while scrolling
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY + 200; // Offset for header
+
+      for (const cat of categories) {
+        const element = document.getElementById(`category-${cat}`);
+        if (element) {
+          const { offsetTop, offsetHeight } = element;
+          if (scrollPosition >= offsetTop && scrollPosition < offsetTop + offsetHeight) {
+            setActiveCategory(cat);
+            break;
+          }
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [categories]);
 
   const addToCart = (id: number) => setCart(prev => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
   const removeFromCart = (id: number) => setCart(prev => {
@@ -110,22 +145,22 @@ export default function FreeOrderRestaurantPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-40 lg:pb-8">
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* menue Section */}
+          {/* Menu Section */}
           <div className="flex-1">
-            <div className="bg-slate-800/50 backdrop-blur-xl rounded-3xl p-6 border border-slate-700/50 mb-6">
+            <div className="bg-slate-800/50 backdrop-blur-xl rounded-3xl p-6 border border-slate-700/50 mb-4 mt-4">
               <h1 className="text-3xl font-bold text-white mb-2">{restaurant.name}</h1>
               <p className="text-slate-400">{restaurant.description}</p>
             </div>
 
             {/* Category Pills */}
-            <div className="sticky top-20 z-40 bg-slate-900/95 backdrop-blur-xl rounded-2xl p-2 mb-6 border border-slate-700/50">
+            <div className="sticky top-16 z-40 bg-slate-900/95 backdrop-blur-xl rounded-2xl p-2 mb-4 border border-slate-700/50">
               <div className="flex gap-2 overflow-x-auto scrollbar-hide">
                 {categories.map((cat) => (
                   <button
                     key={cat}
-                    onClick={() => setActiveCategory(cat)}
+                    onClick={() => scrollToCategory(cat)}
                     className={`px-6 py-3 rounded-xl font-medium whitespace-nowrap transition-all ${
                       activeCategory === cat
                         ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/30'
@@ -138,9 +173,9 @@ export default function FreeOrderRestaurantPage() {
               </div>
             </div>
 
-            {/* menue Items by Category */}
+            {/* Menu Items by Category */}
             {categories.map((cat) => (
-              <div key={cat} className="mb-8">
+              <div key={cat} id={`category-${cat}`} className="mb-8">
                 <h2 className="text-2xl font-bold text-white mb-4">{cat}</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {(items[cat] || []).map((item) => (
@@ -201,8 +236,8 @@ export default function FreeOrderRestaurantPage() {
             ))}
           </div>
 
-          {/* Cart Sidebar */}
-          <div className="lg:w-96">
+          {/* Cart Sidebar - Desktop Only */}
+          <div className="w-full lg:w-96 hidden lg:block">
             <div className="sticky top-20 bg-slate-800/50 backdrop-blur-xl rounded-3xl p-6 border border-slate-700/50">
               <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
                 <span className="text-2xl">🛒</span>
@@ -267,6 +302,17 @@ export default function FreeOrderRestaurantPage() {
           </div>
         </div>
       </main>
+
+      {/* Mobile Checkout Button - Fixed at bottom */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-slate-900/95 backdrop-blur-xl border-t border-slate-700/50 z-50">
+        <button
+          onClick={handleCheckout}
+          disabled={cartItems.length === 0}
+          className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 disabled:opacity-30 disabled:cursor-not-allowed text-white py-4 rounded-xl font-bold text-lg transition-all shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50"
+        >
+          پرداخت و ثبت سفارش {cartItems.length > 0 && `(${payable.toLocaleString()} تومان)`}
+        </button>
+      </div>
     </div>
   );
 }

@@ -6,10 +6,11 @@ export type Meal = {
   id: number;
   type: 'صبحانه' | 'ناهار' | 'شام';
   restaurant: string;
+  key?: string;
   status: MealStatus;
   time: string;
   location: string;
-  orderId?: string; // برای وعده‌های خورده شده
+  orderId?: string;
 };
 
 export type MockUser = {
@@ -21,9 +22,9 @@ export type MockUser = {
 };
 
 export const mockUsers: MockUser[] = [
-  // کاربر 1: همه وعده‌ها آماده سفارش
+  // کاربر 1: صبحانه خورده شده، ناهار آماده سفارش، شام خارج از وعده
   {
-    studentId: '401101008',
+    studentId: '4021101008',
     password: '1234',
     name: 'المیرا تقی نسب',
     avatar: 'ا',
@@ -32,42 +33,9 @@ export const mockUsers: MockUser[] = [
         id: 1,
         type: 'صبحانه',
         restaurant: 'امیرالمومنین',
-        status: 'آماده سفارش',
-        time: '07:00 - 09:00',
-        location: 'سلف سرویس خوابگاه'
-      },
-      {
-        id: 2,
-        type: 'ناهار',
-        restaurant: 'امیرالمومنین',
-        status: 'آماده سفارش',
-        time: '12:00 - 14:00',
-        location: 'سلف سرویس خوابگاه'
-      },
-      {
-        id: 3,
-        type: 'شام',
-        restaurant: 'امیرالمومنین',
-        status: 'آماده سفارش',
-        time: '18:00 - 20:00',
-        location: 'سلف سرویس خوابگاه'
-      }
-    ]
-  },
-  
-  // کاربر 2: ترکیبی از وضعیت‌ها
-  {
-    studentId: '401222222',
-    password: '1234',
-    name: 'محمد رضایی',
-    avatar: 'م',
-    meals: [
-      {
-        id: 1,
-        type: 'صبحانه',
-        restaurant: 'امیرالمومنین',
+        key: 'amiralmomenin',
         status: 'خورده شده',
-        time: '07:00 - 09:00',
+        time: '07:30 - 09:30',
         location: 'سلف سرویس خوابگاه',
         orderId: 'ORD-2024-001234'
       },
@@ -75,97 +43,68 @@ export const mockUsers: MockUser[] = [
         id: 2,
         type: 'ناهار',
         restaurant: 'رستوران کاکتوس',
-        status: 'خارج از وعده',
-        time: '12:00 - 14:00',
-        location: 'بلوار دانشگاه'
+        key: 'kaktus',
+        status: 'آماده سفارش',
+        time: '11:45 - 15:15',
+        location: 'جنب میدان عشق'
       },
       {
         id: 3,
         type: 'شام',
         restaurant: 'امیرالمومنین',
-        status: 'آماده سفارش',
-        time: '18:00 - 20:00',
+        key: 'amiralmomenin',
+        status: 'خارج از وعده',
+        time: '18:00 - 21:00',
         location: 'سلف سرویس خوابگاه'
       }
     ]
   },
-
-  // کاربر 3: همه خورده شده
+  
+  // کاربر 2: همه خورده شده
   {
-    studentId: '401333333',
+    studentId: '4021101009',
     password: '1234',
-    name: 'زهرا کریمی',
-    avatar: 'ز',
+    name: 'امید جلالی',
+    avatar: 'ا',
     meals: [
       {
         id: 1,
         type: 'صبحانه',
         restaurant: 'امیرالمومنین',
+        key: 'amiralmomenin',
         status: 'خورده شده',
-        time: '07:00 - 09:00',
+        time: '07:30 - 09:30',
         location: 'سلف سرویس خوابگاه',
         orderId: 'ORD-2024-001235'
       },
       {
         id: 2,
         type: 'ناهار',
-        restaurant: 'امیرالمومنین',
+        restaurant: 'رستوران ترنج',
+        key: 'toranj',
         status: 'خورده شده',
-        time: '12:00 - 14:00',
-        location: 'سلف سرویس خوابگاه',
+        time: '11:45 - 15:15',
+        location: 'زیر ساختمان جعفری',
         orderId: 'ORD-2024-001236'
       },
       {
         id: 3,
         type: 'شام',
         restaurant: 'امیرالمومنین',
+        key: 'amiralmomenin',
         status: 'خورده شده',
-        time: '18:00 - 20:00',
+        time: '18:00 - 21:00',
         location: 'سلف سرویس خوابگاه',
         orderId: 'ORD-2024-001237'
       }
     ]
   },
 
-  // کاربر 4: رزرو نشده و خارج از وعده
+  // کاربر 3: صبحانه و شام رزرو نشده، ناهار آماده سفارش
   {
-    studentId: '401444444',
+    studentId: '4021101010',
     password: '1234',
-    name: 'فاطمه نوری',
-    avatar: 'ف',
-    meals: [
-      {
-        id: 1,
-        type: 'صبحانه',
-        restaurant: '-',
-        status: 'رزرو نشده',
-        time: '07:00 - 09:00',
-        location: '-'
-      },
-      {
-        id: 2,
-        type: 'ناهار',
-        restaurant: 'رستوران کاکتوس',
-        status: 'خارج از وعده',
-        time: '12:00 - 14:00',
-        location: 'بلوار دانشگاه'
-      },
-      {
-        id: 3,
-        type: 'شام',
-        restaurant: '-',
-        status: 'رزرو نشده',
-        time: '18:00 - 20:00',
-        location: '-'
-      }
-    ]
-  },
-
-  // کاربر 5: همه رزرو نشده
-  {
-    studentId: '401555555',
-    password: '1234',
-    name: 'حسین محمدی',
+    name: 'حدیث حایری',
     avatar: 'ح',
     meals: [
       {
@@ -173,23 +112,24 @@ export const mockUsers: MockUser[] = [
         type: 'صبحانه',
         restaurant: '-',
         status: 'رزرو نشده',
-        time: '07:00 - 09:00',
+        time: '07:30 - 09:30',
         location: '-'
       },
       {
         id: 2,
         type: 'ناهار',
-        restaurant: '-',
-        status: 'رزرو نشده',
-        time: '12:00 - 14:00',
-        location: '-'
+        restaurant: 'رستوران زیتون',
+        key: 'zitoun',
+        status: 'آماده سفارش',
+        time: '11:45 - 15:15',
+        location: 'زیر ساخمان مطهری'
       },
       {
         id: 3,
         type: 'شام',
         restaurant: '-',
         status: 'رزرو نشده',
-        time: '18:00 - 20:00',
+        time: '18:00 - 21:00',
         location: '-'
       }
     ]

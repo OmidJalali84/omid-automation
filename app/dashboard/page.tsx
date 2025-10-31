@@ -1,19 +1,10 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 type MealStatus = 'رزرو نشده' | 'خورده شده' | 'آماده سفارش' | 'خارج از وعده';
 
-type StatusConfig = {
-  color: string;
-  bgClass: string;
-  textClass: string;
-  borderClass: string;
-  actionText: string;
-  actionLink: string;
-  disabled: boolean;
-};
 type Meal = {
   id: number;
   type: string;
@@ -25,6 +16,15 @@ type Meal = {
   orderId?: string;
 };
 
+type StatusConfig = {
+  color: string;
+  bgClass: string;
+  textClass: string;
+  borderClass: string;
+  actionText: string;
+  actionLink: string;
+  disabled: boolean;
+};
 
 const statusConfigs: Record<MealStatus, StatusConfig> = {
   'آماده سفارش': {
@@ -33,7 +33,7 @@ const statusConfigs: Record<MealStatus, StatusConfig> = {
     textClass: 'text-emerald-400',
     borderClass: 'border-emerald-500/20',
     actionText: 'سفارش دهید',
-    actionLink: '#',
+    actionLink: '/menu',
     disabled: false
   },
   'خورده شده': {
@@ -65,64 +65,65 @@ const statusConfigs: Record<MealStatus, StatusConfig> = {
   }
 };
 
+// Mock Users Data
+const mockUsersData: Record<string, any> = {
+  '4021101008': { 
+    name: 'المیرا تقی نسب', 
+    avatar: 'ا', 
+    meals: [
+      { id: 1, type: 'صبحانه', restaurant: 'امیرالمومنین', key: 'amiralmomenin', status: 'خورده شده', time: '07:30 - 09:30', location: 'سلف سرویس خوابگاه', orderId: 'ORD-2024-001234' },
+      { id: 2, type: 'ناهار', restaurant: 'رستوران کاکتوس', key: 'kaktus', status: 'آماده سفارش', time: '11:45 - 15:15', location: 'جنب میدان عشق' },
+      { id: 3, type: 'شام', restaurant: 'امیرالمومنین', key: 'amiralmomenin', status: 'خارج از وعده', time: '18:00 - 21:00', location: 'سلف سرویس خوابگاه' }
+    ]
+  },
+  '4021101009': { 
+    name: 'امید جلالی', 
+    avatar: 'ا', 
+    meals: [
+      { id: 1, type: 'صبحانه', restaurant: 'امیرالمومنین', key: 'amiralmomenin', status: 'خورده شده', time: '07:30 - 09:30', location: 'سلف سرویس خوابگاه', orderId: 'ORD-2024-001235' },
+      { id: 2, type: 'ناهار', restaurant: 'رستوران کاکتوس', key: 'kaktus', status: 'خورده شده', time: '11:45 - 15:15', location: 'جنب میدان عشق', orderId: 'ORD-2024-001236' },
+      { id: 3, type: 'شام', restaurant: 'امیرالمومنین', key: 'amiralmomenin', status: 'خورده شده', time: '18:00 - 21:00', location: 'سلف سرویس خوابگاه', orderId: 'ORD-2024-001237' }
+    ]
+  },
+  '4021101010': { 
+    name: 'حدیث حایری', 
+    avatar: 'ح', 
+    meals: [
+      { id: 1, type: 'صبحانه', restaurant: '-', status: 'رزرو نشده', time: '07:30 - 09:30', location: '-' },
+      { id: 2, type: 'ناهار', restaurant: 'امیرالمومنین', key: 'amiralmomenin', status: 'آماده سفارش', time: '11:45 - 15:15', location: 'سلف سرویس خوابگاه' },
+      { id: 3, type: 'شام', restaurant: '-', status: 'رزرو نشده', time: '18:00 - 21:00', location: '-' }
+    ]
+  }
+};
+
 export default function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   
-  // بارگذاری اطلاعات کاربر
-  useState(() => {
+  useEffect(() => {
     if (typeof window !== 'undefined') {
-      const studentId = localStorage.getItem('currentStudentId');
-      // در پروژه واقعی از findUserByStudentId استفاده کنید
-      // و دیتا رو از API بگیرید
-      const mockUserData = {
-        '4021101008': { name: 'المیرا تقی نسب', avatar: 'ا', meals: [
-          { id: 1, type: 'صبحانه', restaurant: 'امیرالمومنین',key: 'amiralmomenin', status: 'خورده شده'as MealStatus, time: '07:30 - 09:30', location: 'سلف سرویس خوابگاه' , orderId: 'ORD-2024-001234'},
-          { id: 2, type: 'ناهار', restaurant: 'رستوران کاکتوس',key: 'kaktus', status: 'آماده سفارش' as MealStatus, time: '11:45 - 15:15', location: 'جنب میدان عشق' },
-          { id: 3, type: 'شام', restaurant: 'امیرالمومنین',key: 'amiralmomenin', status: 'خارج از وعده'  as MealStatus, time: '18:00 - 21:00', location: 'سلف سرویس خوابگاه' }
-        ]},
-        '401222222': { name: 'محمد رضایی', avatar: 'م', meals: [
-          { id: 1, type: 'صبحانه', restaurant: 'امیرالمومنین',key: 'amiralmomenin',status: 'خورده شده' as MealStatus, time: '07:30 - 09:30', location: 'سلف سرویس خوابگاه', orderId: 'ORD-2024-001235' },
-          { id: 2, type: 'ناهار', restaurant: 'رستوران کاکتوس',key: 'kaktus', status: 'خورده شده'  as MealStatus, time: '11:45 - 15:15', location: 'جنب میدان عشق' , orderId: 'ORD-2024-001236'},
-          { id: 3, type: 'شام', restaurant: 'امیرالمومنین',key: 'amiralmomenin', status: 'آماده سفارش' as MealStatus, time: '18:00 - 21:00', location: 'سلف سرویس خوابگاه' }
-        ]},
-        '401333333': { name: 'زهرا کریمی', avatar: 'ز', meals: [
-          { id: 1, type: 'صبحانه', restaurant: 'امیرالمومنین',key: 'amiralmomenin', status: 'خارج از وعده' as MealStatus, time: '07:30 - 09:30', location: 'سلف سرویس خوابگاه' },
-          { id: 2, type: 'ناهار', restaurant: 'امیرالمومنین',key: 'amiralmomenin', status: 'خارج از وعده' as MealStatus, time: '11:45 - 15:15', location: 'سلف سرویس خوابگاه'},
-          { id: 3, type: 'شام', restaurant: 'امیرالمومنین',key: 'amiralmomenin', status: 'خارج از وعده' as MealStatus, time: '18:00 - 21:00', location: 'سلف سرویس خوابگاه' }
-        ]},
-        '401444444': { name: 'فاطمه نوری', avatar: 'ف', meals: [
-          { id: 1, type: 'صبحانه', restaurant: '-', status: 'رزرو نشده' as MealStatus, time: '07:30 - 09:30', location: '-' },
-          { id: 2, type: 'ناهار', restaurant: 'رستوران کاکتوس',key: 'kaktus', status: 'خارج از وعده' as MealStatus, time: '11:45 - 15:15', location: 'جنب میدان عشق' },
-          { id: 3, type: 'شام', restaurant: '-', status: 'رزرو نشده' as MealStatus, time: '18:00 - 21:00', location: '-' }
-        ]},
-        '401555555': { name: 'حسین محمدی', avatar: 'ح', meals: [
-          { id: 1, type: 'صبحانه', restaurant: '-', status: 'خورده شده'as MealStatus, time: '07:30 - 09:30', location: '-' , orderId: 'ORD-2024-001237'},
-          { id: 2, type: 'ناهار', restaurant: '-', status: 'خورده شده'as MealStatus, time: '11:45 - 15:15', location: '-' , orderId: 'ORD-2024-001238'},
-          { id: 3, type: 'شام', restaurant: '-', status: 'خورده شده' as MealStatus, time: '18:00 - 21:00', location: '-', orderId: 'ORD-2024-001239' }
-        ]}
-      };
-      const userData = mockUserData[studentId as keyof typeof mockUserData] || mockUserData['4021101008'];
+      const studentId = localStorage.getItem('currentStudentId') || '4021101008';
+      const userData = mockUsersData[studentId] || mockUsersData['4021101008'];
       setCurrentUser({ studentId, ...userData });
     }
-  });
+  }, []);
 
   const user = currentUser || {
-    studentId: '401234567',
-    name: 'محمد احمدی',
-    avatar: 'م'
+    studentId: '4021101008',
+    name: 'المیرا تقی نسب',
+    avatar: 'ا'
   };
 
-  const todayMeals: Meal[] = currentUser?.meals || [
-    { id: 1, type: 'صبحانه', restaurant: 'امیرالمومنین', status: 'خورده شده' as MealStatus, time: '07:00 - 09:00', location: 'سلف سرویس خوابگاه', orderId: 'ORD-2024-001234' },
-    { id: 2, type: 'ناهار', restaurant: 'رستوران کاکتوس', status: 'خارج از وعده' as MealStatus, time: '11:45 - 15:15', location: 'بلوار دانشگاه' },
-    { id: 3, type: 'شام', restaurant: 'امیرالمومنین', status: 'آماده سفارش' as MealStatus, time: '18:00 - 21:00', location: 'سلف سرویس خوابگاه' }
-  ];
+  const todayMeals: Meal[] = currentUser?.meals || [];
+  const pastOrders = todayMeals.filter(meal => meal.status === 'خورده شده');
 
-  const pastOrders = [
-    { id: 1, count: 1, status: 'delivered' }
-  ];
+  const handleLogout = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('currentStudentId');
+      window.location.href = '/login';
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
@@ -142,7 +143,7 @@ export default function DashboardPage() {
 
             <div className="flex items-center">
               <button
-                aria-label="menue"
+                aria-label="menu"
                 onClick={() => setMenuOpen(true)}
                 className="p-2 rounded-lg hover:bg-slate-800 border border-slate-700/50 text-white"
               >
@@ -153,7 +154,7 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      {/* Side menue */}
+      {/* Side Menu */}
       {menuOpen && (
         <div className="fixed inset-0 z-50">
           <div className="absolute inset-0 bg-black/50" onClick={() => setMenuOpen(false)} />
@@ -180,7 +181,12 @@ export default function DashboardPage() {
             </nav>
 
             <div className="mt-auto">
-              <button className="w-full px-4 py-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl transition-colors text-sm font-medium border border-red-500/20">خروج</button>
+              <button 
+                onClick={handleLogout}
+                className="w-full px-4 py-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl transition-colors text-sm font-medium border border-red-500/20"
+              >
+                خروج
+              </button>
             </div>
           </aside>
         </div>
@@ -188,7 +194,6 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-
         {/* Today's Meals Section */}
         <section className="mb-8">
           <div className="flex items-center justify-between mb-6">
@@ -197,7 +202,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {todayMeals.map((meal: Meal) => {
+            {todayMeals.map((meal: Meal) => {
               const config = statusConfigs[meal.status];
               const isDisabled = config.disabled;
               
@@ -258,28 +263,20 @@ export default function DashboardPage() {
                       >
                         مشاهده سفارش
                       </Link>
-                    ) : meal.status === 'آماده سفارش' ?(
-                      (
-                        <Link
-                          href={`/menue/${meal.key}`}
-                          className={'flex-1 py-3 rounded-xl font-medium transition-all shadow-lg text-center bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white shadow-emerald-500/20 hover:shadow-emerald-500/40'}
-                        >
-                          {config.actionText}
-                        </Link>
-                      )
-                    ): (
+                    ) : meal.status === 'آماده سفارش' ? (
                       <Link
-                      href={config.actionLink}
-                      className={`flex-1 py-3 rounded-xl font-medium transition-all shadow-lg text-center ${
-                        config.color === 'emerald' 
-                          ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white shadow-emerald-500/20 hover:shadow-emerald-500/40'
-                          : config.color === 'blue'
-                          ? 'bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20'
-                          : 'bg-slate-700/50 hover:bg-slate-600/50 text-white'
-                      }`}
-                    >
-                      {config.actionText}
-                    </Link>
+                        href={`/menu/${meal.key}`}
+                        className="flex-1 py-3 rounded-xl font-medium transition-all shadow-lg text-center bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white shadow-emerald-500/20 hover:shadow-emerald-500/40"
+                      >
+                        {config.actionText}
+                      </Link>
+                    ) : (
+                      <Link
+                        href={config.actionLink}
+                        className="flex-1 py-3 rounded-xl font-medium transition-all shadow-lg text-center bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20"
+                      >
+                        {config.actionText}
+                      </Link>
                     )}
                   </div>
                 </div>
@@ -287,7 +284,6 @@ export default function DashboardPage() {
             })}
           </div>
         </section>
-
 
         {/* Past Orders Section */}
         <section>
@@ -301,7 +297,25 @@ export default function DashboardPage() {
 
           {pastOrders.length > 0 ? (
             <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl p-6 border border-slate-700/50">
-              <p className="text-slate-300">شما {pastOrders.length} سفارش ثبت‌شده دارید</p>
+              <p className="text-slate-300 mb-4">شما {pastOrders.length} سفارش ثبت‌شده دارید</p>
+              <div className="space-y-2">
+                {pastOrders.map((order) => (
+                  <Link
+                    key={order.id}
+                    href={`/order-detail/${order.orderId}`}
+                    className="flex items-center justify-between bg-slate-700/30 hover:bg-slate-700/50 rounded-xl p-4 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">🍽️</span>
+                      <div>
+                        <p className="text-white font-semibold">{order.type}</p>
+                        <p className="text-slate-400 text-sm">{order.restaurant}</p>
+                      </div>
+                    </div>
+                    <span className="text-emerald-400 text-sm">مشاهده →</span>
+                  </Link>
+                ))}
+              </div>
             </div>
           ) : (
             <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl p-12 border border-slate-700/50 text-center">

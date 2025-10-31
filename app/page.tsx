@@ -152,10 +152,18 @@ export default function LoginPage() {
         </div>
 
         <div className="mt-6 text-center">
-          <p className="text-slate-500 text-sm">
+          <p className="text-slate-500 text-sm mb-3">
             برای ورود از شماره دانشجویی و رمز عبور خود استفاده کنید
           </p>
-          <p className="text-slate-600 text-xs mt-2">
+          <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
+            <p className="text-slate-400 text-xs mb-2">حساب‌های آزمایشی (رمز: 1234):</p>
+            <div className="flex flex-wrap gap-2 justify-center">
+              <code className="text-emerald-400 text-xs bg-slate-900/50 px-2 py-1 rounded">4021101008</code>
+              <code className="text-emerald-400 text-xs bg-slate-900/50 px-2 py-1 rounded">4021101009</code>
+              <code className="text-emerald-400 text-xs bg-slate-900/50 px-2 py-1 rounded">4021101010</code>
+            </div>
+          </div>
+          <p className="text-slate-600 text-xs mt-3">
             در صورت بروز مشکل با پشتیبانی تماس بگیرید
           </p>
         </div>

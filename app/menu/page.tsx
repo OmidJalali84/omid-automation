@@ -101,7 +101,7 @@ export default function RestaurantMenu() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* menue Section */}
+          {/* menu Section */}
           <div className="flex-1">
             <div className="bg-slate-800/50 backdrop-blur-xl rounded-3xl p-6 border border-slate-700/50 mb-6">
               <h1 className="text-3xl font-bold text-white mb-2">{restaurant.name}</h1>
@@ -127,7 +127,7 @@ export default function RestaurantMenu() {
               </div>
             </div>
 
-            {/* menue Items by Category */}
+            {/* menu Items by Category */}
             {categories.map((cat) => (
               <div key={cat} className="mb-8">
                 <h2 className="text-2xl font-bold text-white mb-4">{cat}</h2>
