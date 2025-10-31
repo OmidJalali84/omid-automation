@@ -8,10 +8,10 @@ import { restaurants, type RestaurantKey } from '../data/restaurants';
 export default function FreeOrderRestaurantPage() {
   const jettonWorth = 70000;
 
-  type Category = 'برنجی' | 'نوشیدنی' | 'سالاد';
-  const categories: Category[] = ['برنجی', 'نوشیدنی', 'سالاد'];
+  type Category ='غذای ایرانی'| 'فست فود' | 'پیتزا' |'صبحانه';
+    const categories: Category[] = ['غذای ایرانی', 'فست فود' , 'پیتزا' ,'صبحانه'];
   type MenuItem = { id: number; name: string; price: number; image: string; available: boolean };
-  const [activeCategory, setActiveCategory] = useState<Category>('برنجی');
+  const [activeCategory, setActiveCategory] = useState<Category>('غذای ایرانی');
   const params = useParams();
   const router = useRouter();
   const key = String(params?.slug || '') as RestaurantKey;
