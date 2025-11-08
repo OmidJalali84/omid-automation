@@ -22,7 +22,7 @@ export default function LoginPage() {
         if (typeof window !== 'undefined') {
           localStorage.setItem('currentStudentId', studentId);
         }
-        window.location.href = '/dashboard';
+        window.location.href = '/free-order';
       } else {
         setError('شماره دانشجویی یا رمز عبور اشتباه است');
         setIsLoading(false);

@@ -1,7 +1,7 @@
 "use client";
 
-import Link from 'next/link';
-import { restaurantList } from '../menu/data/restaurants';
+import Link from "next/link";
+import { restaurantList } from "../../lib/data/restaurants";
 
 export default function FreeOrderSelectPage() {
   return (
@@ -17,7 +17,12 @@ export default function FreeOrderSelectPage() {
               <p className="text-slate-400 text-xs">انتخاب رستوران</p>
             </div>
           </div>
-          <Link href="/dashboard" className="px-4 py-2 bg-slate-800/50 hover:bg-slate-700/50 text-white rounded-xl border border-slate-700/50 text-sm">بازگشت</Link>
+          <Link
+            href="/dashboard"
+            className="px-4 py-2 bg-slate-800/50 hover:bg-slate-700/50 text-white rounded-xl border border-slate-700/50 text-sm"
+          >
+            بازگشت
+          </Link>
         </div>
       </header>
 
@@ -33,7 +38,9 @@ export default function FreeOrderSelectPage() {
                 <h2 className="text-white font-bold text-xl">{r.name}</h2>
                 <span className="text-2xl">➡️</span>
               </div>
-              <p className="text-slate-400 text-sm line-clamp-2">{r.description}</p>
+              <p className="text-slate-400 text-sm line-clamp-2">
+                {r.description}
+              </p>
             </Link>
           ))}
         </div>
@@ -41,5 +48,3 @@ export default function FreeOrderSelectPage() {
     </div>
   );
 }
-
-

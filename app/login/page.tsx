@@ -19,7 +19,7 @@ export default function LoginPage() {
     setTimeout(() => {
       if (studentId && password) {
         // موفق
-        window.location.href = '/dashboard';
+        window.location.href = '/free-order';
       } else {
         setError('شماره دانشجویی یا رمز عبور اشتباه است');
         setIsLoading(false);

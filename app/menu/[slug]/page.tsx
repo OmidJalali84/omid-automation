@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
-import { restaurants, type RestaurantKey } from "../data/restaurants";
+import { restaurants, type RestaurantKey } from "../../../lib/data/restaurants";
 
 export default function FreeOrderRestaurantPage() {
   const jettonValue = 70000; // ارزش هر ژتون

@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useState } from "react";
 import {
   Camera,
@@ -21,6 +20,7 @@ import {
 const mockOrders = [
   {
     id: "ORD-2024-001240",
+    kitchenNumber: 387,
     studentId: "4021101008",
     studentName: "المیرا تقی نسب",
     mealType: "ناهار",
@@ -38,6 +38,7 @@ const mockOrders = [
   },
   {
     id: "ORD-2024-001241",
+    kitchenNumber: 412,
     studentId: "4021101009",
     studentName: "امید جلالی",
     mealType: "ناهار",
@@ -52,6 +53,7 @@ const mockOrders = [
   },
   {
     id: "ORD-2024-001242",
+    kitchenNumber: 256,
     studentId: "4021101010",
     studentName: "حدیث حایری",
     mealType: "ناهار",
@@ -69,6 +71,7 @@ const mockOrders = [
   },
   {
     id: "ORD-2024-001243",
+    kitchenNumber: 495,
     studentId: "4021101011",
     studentName: "رضا احمدی",
     mealType: "شام",
@@ -388,107 +391,109 @@ export default function RestaurantAdminPanel() {
               </div>
             </div>
 
-            {/* Orders List */}
-            <div className="space-y-4">
+            {/* Orders List - Grid Layout */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
               {filteredOrders.map((order) => {
                 const statusConfig = getStatusConfig(order.status);
                 const StatusIcon = statusConfig.icon;
                 return (
                   <div
                     key={order.id}
-                    className="bg-slate-800/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 overflow-hidden"
+                    className="bg-slate-800/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 overflow-hidden hover:border-slate-600/50 transition-all flex flex-col"
                   >
-                    <div className="p-5">
-                      <div className="flex items-start justify-between mb-4">
-                        <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="text-white font-bold text-lg">
+                    <div className="p-4 flex-1 flex flex-col">
+                      {/* Header */}
+                      <div className="mb-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white font-bold text-lg px-3 py-1 rounded-lg shadow-lg flex-shrink-0">
+                              #{order.kitchenNumber}
+                            </div>
+                            <h3 className="text-slate-400 font-mono text-xs truncate">
                               {order.id}
                             </h3>
-                            <span
-                              className={`px-3 py-1 rounded-full text-xs font-medium bg-${statusConfig.color}-500/10 text-${statusConfig.color}-400 border border-${statusConfig.color}-500/20 flex items-center gap-1`}
-                            >
-                              <StatusIcon className="w-3 h-3" />
-                              {statusConfig.label}
-                            </span>
                           </div>
-                          <p className="text-slate-400 text-sm">
-                            {order.studentName} • {order.studentId}
-                          </p>
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-medium bg-${statusConfig.color}-500/10 text-${statusConfig.color}-400 border border-${statusConfig.color}-500/20 flex items-center gap-1 flex-shrink-0`}
+                          >
+                            <StatusIcon className="w-3 h-3" />
+                          </span>
                         </div>
-                        <div className="text-left">
-                          <p className="text-white font-semibold">
+                        <p className="text-slate-400 text-xs truncate">
+                          {order.studentName} • {order.studentId}
+                        </p>
+                        <div className="flex items-center justify-between mt-1">
+                          <p className="text-white font-semibold text-sm">
                             {order.mealType}
                           </p>
-                          <p className="text-slate-400 text-sm">{order.time}</p>
+                          <p className="text-slate-400 text-xs">{order.time}</p>
                         </div>
                       </div>
 
-                      <div className="bg-slate-700/30 rounded-xl p-4 mb-4">
-                        {order.items.map((item, idx) => (
-                          <div
-                            key={idx}
-                            className="flex justify-between items-center py-2"
-                          >
-                            <span className="text-slate-300">
-                              {item.name} × {item.qty}
-                            </span>
-                            <span className="text-slate-400 text-sm">
-                              {item.price.toLocaleString()} تومان
-                            </span>
-                          </div>
-                        ))}
-                        <div className="border-t border-slate-600/50 mt-3 pt-3 space-y-2">
-                          <div className="flex justify-between">
+                      {/* Items */}
+                      <div className="bg-slate-700/30 rounded-xl p-3 mb-3 flex-1">
+                        <div className="space-y-1.5 mb-2 max-h-24 overflow-y-auto">
+                          {order.items.map((item, idx) => (
+                            <div
+                              key={idx}
+                              className="flex justify-between items-start text-xs"
+                            >
+                              <span className="text-slate-300 flex-1 leading-tight">
+                                {item.name} × {item.qty}
+                              </span>
+                              <span className="text-slate-400 text-xs flex-shrink-0 ml-2">
+                                {item.price.toLocaleString()}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="border-t border-slate-600/50 pt-2 space-y-1">
+                          <div className="flex justify-between text-xs">
                             <span className="text-slate-400">جمع کل:</span>
                             <span className="text-white font-semibold">
-                              {order.total.toLocaleString()} تومان
+                              {order.total.toLocaleString()}
                             </span>
                           </div>
-                          <div className="flex justify-between">
+                          <div className="flex justify-between text-xs">
                             <span className="text-slate-400">ارزش ژتون:</span>
                             <span className="text-yellow-400 font-semibold">
-                              -{order.jettonWorth.toLocaleString()} تومان
+                              -{order.jettonWorth.toLocaleString()}
                             </span>
                           </div>
-                          <div className="flex justify-between">
+                          <div className="flex justify-between text-xs">
                             <span className="text-white font-semibold">
-                              مبلغ پرداختی:
+                              پرداختی:
                             </span>
                             <span className="text-emerald-400 font-bold">
-                              {order.paid.toLocaleString()} تومان
+                              {order.paid.toLocaleString()}
                             </span>
                           </div>
                         </div>
                       </div>
 
-                      {/* Jettons to Collect */}
-                      <div className="bg-gradient-to-r from-yellow-500/10 to-amber-500/10 rounded-xl p-4 mb-4 border border-yellow-500/20">
+                      {/* Jettons Badge */}
+                      <div className="bg-gradient-to-r from-yellow-500/10 to-amber-500/10 rounded-xl p-3 mb-3 border border-yellow-500/20">
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-yellow-500/20 rounded-lg flex items-center justify-center">
-                              <span className="text-2xl">🎫</span>
-                            </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl">🎫</span>
                             <div>
-                              <p className="text-yellow-400 font-bold text-sm">
-                                ژتون‌های دریافتی
+                              <p className="text-yellow-400 font-bold text-xs">
+                                ژتون دریافتی
                               </p>
                               <p className="text-yellow-300/70 text-xs">
-                                باید در زمان تحویل دریافت شود
+                                در زمان تحویل
                               </p>
                             </div>
                           </div>
-                          <div className="text-left">
-                            <span className="text-3xl font-bold text-yellow-400">
-                              {order.jettonsRequired}
-                            </span>
-                            <p className="text-yellow-300/70 text-xs">ژتون</p>
-                          </div>
+                          <span className="text-2xl font-bold text-yellow-400">
+                            {order.jettonsRequired}
+                          </span>
                         </div>
                       </div>
 
-                      {order.status !== "delivered" && (
-                        <div className="flex gap-2">
+                      {/* Actions */}
+                      {order.status === "pending" ? (
+                        <div className="flex flex-col gap-2 mt-auto">
                           {order.status === "pending" && (
                             <button
                               onClick={() =>
@@ -500,18 +505,24 @@ export default function RestaurantAdminPanel() {
                                   )
                                 )
                               }
-                              className="flex-1 px-4 py-3 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-xl transition-colors border border-blue-500/20 font-medium"
+                              className="w-full px-3 py-2.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-lg transition-colors border border-blue-500/20 font-medium text-sm"
                             >
                               آماده تحویل
                             </button>
                           )}
-                          <button
-                            onClick={() => handleDeliverOrder(order.id)}
-                            className="flex-1 px-4 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-xl transition-all shadow-lg shadow-emerald-500/30 font-medium"
-                          >
-                            تحویل سفارش
-                          </button>
                         </div>
+                      ) : (
+                        order.status ===
+                        "ready" && (  
+                          <div className="flex flex-col gap-2 mt-auto">
+                            <button
+                              onClick={() => handleDeliverOrder(order.id)}
+                              className="w-full px-3 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-lg transition-all shadow-lg shadow-emerald-500/30 font-medium text-sm"
+                            >
+                              تحویل سفارش
+                            </button>
+                          </div>
+                        )
                       )}
                     </div>
                   </div>
@@ -632,9 +643,15 @@ export default function RestaurantAdminPanel() {
                 </div>
 
                 <div className="bg-slate-700/30 rounded-xl p-4 space-y-2">
+                  <div className="flex justify-between items-center py-2 border-b border-slate-600/50">
+                    <span className="text-slate-400">شماره آشپزخانه:</span>
+                    <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white font-bold text-xl px-4 py-1 rounded-lg shadow-lg">
+                      #{selectedOrder.kitchenNumber}
+                    </div>
+                  </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">کد سفارش:</span>
-                    <span className="text-white font-semibold">
+                    <span className="text-white font-semibold font-mono text-sm">
                       {selectedOrder.id}
                     </span>
                   </div>
