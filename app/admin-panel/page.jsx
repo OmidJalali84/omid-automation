@@ -34,7 +34,6 @@ const mockOrders = [
     total: 185000,
     paid: 115000,
     jettonWorth: 70000,
-    jettonsRequired: 1,
   },
   {
     id: "ORD-2024-001241",
@@ -49,7 +48,6 @@ const mockOrders = [
     total: 130000,
     paid: 60000,
     jettonWorth: 70000,
-    jettonsRequired: 1,
   },
   {
     id: "ORD-2024-001242",
@@ -67,7 +65,6 @@ const mockOrders = [
     total: 165000,
     paid: 95000,
     jettonWorth: 70000,
-    jettonsRequired: 1,
   },
   {
     id: "ORD-2024-001243",
@@ -80,9 +77,8 @@ const mockOrders = [
     status: "pending",
     items: [{ id: 4, name: "چلو تاوا کبابی", qty: 1, price: 210000 }],
     total: 210000,
-    paid: 0,
-    jettonWorth: 210000,
-    jettonsRequired: 3,
+    paid: 140000,
+    jettonWorth: 70000,
   },
 ];
 
@@ -469,27 +465,7 @@ export default function RestaurantAdminPanel() {
                             </span>
                           </div>
                         </div>
-                      </div>
-
-                      {/* Jettons Badge */}
-                      <div className="bg-gradient-to-r from-yellow-500/10 to-amber-500/10 rounded-xl p-3 mb-3 border border-yellow-500/20">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xl">🎫</span>
-                            <div>
-                              <p className="text-yellow-400 font-bold text-xs">
-                                ژتون دریافتی
-                              </p>
-                              <p className="text-yellow-300/70 text-xs">
-                                در زمان تحویل
-                              </p>
-                            </div>
-                          </div>
-                          <span className="text-2xl font-bold text-yellow-400">
-                            {order.jettonsRequired}
-                          </span>
-                        </div>
-                      </div>
+                      </div>                      
 
                       {/* Actions */}
                       {order.status === "pending" ? (
@@ -679,28 +655,7 @@ export default function RestaurantAdminPanel() {
                       {selectedOrder.paid.toLocaleString()} تومان
                     </span>
                   </div>
-                </div>
-
-                {/* Jettons Alert */}
-                <div className="bg-gradient-to-r from-yellow-500/10 to-amber-500/10 rounded-xl p-4 border border-yellow-500/20">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-yellow-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <span className="text-3xl">🎫</span>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-yellow-400 font-bold mb-1">
-                        ژتون‌های دریافتی
-                      </p>
-                      <p className="text-yellow-300/70 text-sm">
-                        باید {selectedOrder.jettonsRequired} ژتون از دانشجو
-                        دریافت شود
-                      </p>
-                    </div>
-                    <div className="text-4xl font-bold text-yellow-400">
-                      {selectedOrder.jettonsRequired}
-                    </div>
-                  </div>
-                </div>
+                </div>                
 
                 <div className="bg-slate-700/30 rounded-xl p-4">
                   <h4 className="text-white font-semibold mb-3">
