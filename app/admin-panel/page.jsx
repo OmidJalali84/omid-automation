@@ -1,5 +1,6 @@
+// app/admin-panel/page.jsx
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Camera,
   Package,
@@ -10,77 +11,10 @@ import {
   Edit2,
   Trash2,
   Search,
-  Filter,
   BarChart3,
-  Users,
   DollarSign,
+  RefreshCw,
 } from "lucide-react";
-
-// Mock Data
-const mockOrders = [
-  {
-    id: "ORD-2024-001240",
-    kitchenNumber: 387,
-    studentId: "4021101008",
-    studentName: "المیرا تقی نسب",
-    mealType: "ناهار",
-    date: "1403/08/09",
-    time: "12:30",
-    status: "pending",
-    items: [
-      { id: 1, name: "چلوکباب کوبیده", qty: 1, price: 160000 },
-      { id: 5, name: "نوشابه", qty: 1, price: 25000 },
-    ],
-    total: 185000,
-    paid: 115000,
-    jettonWorth: 70000,
-  },
-  {
-    id: "ORD-2024-001241",
-    kitchenNumber: 412,
-    studentId: "4021101009",
-    studentName: "امید جلالی",
-    mealType: "ناهار",
-    date: "1403/08/09",
-    time: "12:45",
-    status: "ready",
-    items: [{ id: 3, name: "چلو جوجه", qty: 1, price: 130000 }],
-    total: 130000,
-    paid: 60000,
-    jettonWorth: 70000,
-  },
-  {
-    id: "ORD-2024-001242",
-    kitchenNumber: 256,
-    studentId: "4021101010",
-    studentName: "حدیث حایری",
-    mealType: "ناهار",
-    date: "1403/08/09",
-    time: "13:00",
-    status: "delivered",
-    items: [
-      { id: 2, name: "زرشکپلو با مرغ", qty: 1, price: 145000 },
-      { id: 6, name: "دوغ", qty: 1, price: 20000 },
-    ],
-    total: 165000,
-    paid: 95000,
-    jettonWorth: 70000,
-  },
-  {
-    id: "ORD-2024-001243",
-    kitchenNumber: 495,
-    studentId: "4021101011",
-    studentName: "رضا احمدی",
-    mealType: "شام",
-    date: "1403/08/09",
-    time: "19:00",
-    status: "pending",
-    items: [{ id: 4, name: "چلو تاوا کبابی", qty: 1, price: 210000 }],
-    total: 210000,
-    paid: 140000,
-    jettonWorth: 70000,
-  },
-];
 
 const mockMenuItems = [
   {
@@ -135,16 +69,57 @@ const mockMenuItems = [
 
 export default function RestaurantAdminPanel() {
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [orders, setOrders] = useState(mockOrders);
+  const [orders, setOrders] = useState([]);
   const [menuItems, setMenuItems] = useState(mockMenuItems);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [scanInput, setScanInput] = useState("");
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [editingItem, setEditingItem] = useState(null);
   const [filterStatus, setFilterStatus] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Statistics
+  // Fetch orders from API
+  const fetchOrders = async () => {
+    try {
+      setIsRefreshing(true);
+      const response = await fetch("/api/orders");
+      if (response.ok) {
+        const data = await response.json();
+        setOrders(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch orders:", error);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrders();
+    // Auto-refresh every 10 seconds
+    const interval = setInterval(fetchOrders, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Update order status
+  const updateOrderStatus = async (orderId, newStatus) => {
+    try {
+      const response = await fetch(`/api/orders/${orderId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (response.ok) {
+        await fetchOrders();
+      }
+    } catch (error) {
+      console.error("Failed to update order:", error);
+    }
+  };
+
   const stats = {
     totalOrders: orders.length,
     pendingOrders: orders.filter((o) => o.status === "pending").length,
@@ -165,9 +140,7 @@ export default function RestaurantAdminPanel() {
   };
 
   const handleDeliverOrder = (orderId) => {
-    setOrders(
-      orders.map((o) => (o.id === orderId ? { ...o, status: "delivered" } : o))
-    );
+    updateOrderStatus(orderId, "delivered");
     setSelectedOrder(null);
     setScannerOpen(false);
   };
@@ -203,9 +176,16 @@ export default function RestaurantAdminPanel() {
     return configs[status] || configs.pending;
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+        <div className="text-white text-xl">در حال بارگذاری...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      {/* Header */}
       <header className="sticky top-0 z-50 backdrop-blur-xl bg-slate-900/80 border-b border-slate-700/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
@@ -220,18 +200,29 @@ export default function RestaurantAdminPanel() {
                 <p className="text-slate-400 text-xs">امیرالمومنین</p>
               </div>
             </div>
-            <button
-              onClick={() => setScannerOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-xl transition-all shadow-lg shadow-emerald-500/30"
-            >
-              <Camera className="w-5 h-5" />
-              <span className="hidden sm:inline">اسکن سفارش</span>
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={fetchOrders}
+                disabled={isRefreshing}
+                className="flex items-center gap-2 px-4 py-2 bg-slate-800/50 hover:bg-slate-700/50 text-white rounded-xl transition-all"
+              >
+                <RefreshCw
+                  className={`w-5 h-5 ${isRefreshing ? "animate-spin" : ""}`}
+                />
+                <span className="hidden sm:inline">بروزرسانی</span>
+              </button>
+              <button
+                onClick={() => setScannerOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-xl transition-all shadow-lg shadow-emerald-500/30"
+              >
+                <Camera className="w-5 h-5" />
+                <span className="hidden sm:inline">اسکن سفارش</span>
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Navigation Tabs */}
       <div className="sticky top-16 z-40 backdrop-blur-xl bg-slate-900/80 border-b border-slate-700/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex gap-2 overflow-x-auto scrollbar-hide py-3">
@@ -260,12 +251,9 @@ export default function RestaurantAdminPanel() {
         </div>
       </div>
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Dashboard Tab */}
         {activeTab === "dashboard" && (
           <div className="space-y-6">
-            {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 backdrop-blur-xl rounded-2xl p-6 border border-blue-500/20">
                 <div className="flex items-center justify-between mb-2">
@@ -308,7 +296,6 @@ export default function RestaurantAdminPanel() {
               </div>
             </div>
 
-            {/* Recent Orders */}
             <div className="bg-slate-800/50 backdrop-blur-xl rounded-3xl p-6 border border-slate-700/50">
               <h2 className="text-xl font-bold text-white mb-4">
                 آخرین سفارشات
@@ -353,10 +340,8 @@ export default function RestaurantAdminPanel() {
           </div>
         )}
 
-        {/* Orders Tab */}
         {activeTab === "orders" && (
           <div className="space-y-6">
-            {/* Filters */}
             <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl p-4 border border-slate-700/50">
               <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-1 relative">
@@ -387,7 +372,6 @@ export default function RestaurantAdminPanel() {
               </div>
             </div>
 
-            {/* Orders List - Grid Layout */}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
               {filteredOrders.map((order) => {
                 const statusConfig = getStatusConfig(order.status);
@@ -398,7 +382,6 @@ export default function RestaurantAdminPanel() {
                     className="bg-slate-800/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 overflow-hidden hover:border-slate-600/50 transition-all flex flex-col"
                   >
                     <div className="p-4 flex-1 flex flex-col">
-                      {/* Header */}
                       <div className="mb-3">
                         <div className="flex items-center gap-2 mb-2">
                           <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -426,7 +409,6 @@ export default function RestaurantAdminPanel() {
                         </div>
                       </div>
 
-                      {/* Items */}
                       <div className="bg-slate-700/30 rounded-xl p-3 mb-3 flex-1">
                         <div className="space-y-1.5 mb-2 max-h-24 overflow-y-auto">
                           {order.items.map((item, idx) => (
@@ -465,40 +447,24 @@ export default function RestaurantAdminPanel() {
                             </span>
                           </div>
                         </div>
-                      </div>                      
+                      </div>
 
-                      {/* Actions */}
-                      {order.status === "pending" ? (
-                        <div className="flex flex-col gap-2 mt-auto">
-                          {order.status === "pending" && (
-                            <button
-                              onClick={() =>
-                                setOrders(
-                                  orders.map((o) =>
-                                    o.id === order.id
-                                      ? { ...o, status: "ready" }
-                                      : o
-                                  )
-                                )
-                              }
-                              className="w-full px-3 py-2.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-lg transition-colors border border-blue-500/20 font-medium text-sm"
-                            >
-                              آماده تحویل
-                            </button>
-                          )}
-                        </div>
-                      ) : (
-                        order.status ===
-                        "ready" && (  
-                          <div className="flex flex-col gap-2 mt-auto">
-                            <button
-                              onClick={() => handleDeliverOrder(order.id)}
-                              className="w-full px-3 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-lg transition-all shadow-lg shadow-emerald-500/30 font-medium text-sm"
-                            >
-                              تحویل سفارش
-                            </button>
-                          </div>
-                        )
+                      {order.status === "pending" && (
+                        <button
+                          onClick={() => updateOrderStatus(order.id, "ready")}
+                          className="w-full px-3 py-2.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-lg transition-colors border border-blue-500/20 font-medium text-sm"
+                        >
+                          آماده تحویل
+                        </button>
+                      )}
+
+                      {order.status === "ready" && (
+                        <button
+                          onClick={() => handleDeliverOrder(order.id)}
+                          className="w-full px-3 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-lg transition-all shadow-lg shadow-emerald-500/30 font-medium text-sm"
+                        >
+                          تحویل سفارش
+                        </button>
                       )}
                     </div>
                   </div>
@@ -508,7 +474,6 @@ export default function RestaurantAdminPanel() {
           </div>
         )}
 
-        {/* Menu Management Tab */}
         {activeTab === "menu" && (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
@@ -563,7 +528,6 @@ export default function RestaurantAdminPanel() {
         )}
       </main>
 
-      {/* Scanner Modal */}
       {scannerOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
@@ -655,7 +619,7 @@ export default function RestaurantAdminPanel() {
                       {selectedOrder.paid.toLocaleString()} تومان
                     </span>
                   </div>
-                </div>                
+                </div>
 
                 <div className="bg-slate-700/30 rounded-xl p-4">
                   <h4 className="text-white font-semibold mb-3">
