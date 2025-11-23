@@ -155,6 +155,21 @@ export async function POST(request: NextRequest) {
 
     orders.unshift(newOrder);
     await writeOrders(orders);
+    try {
+      await fetch(
+        `${
+          process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+        }/api/print-queue`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newOrder),
+        }
+      );
+    } catch (error) {
+      console.error("Failed to add to print queue:", error);
+      // Don't fail the order creation if print queue fails
+    }
 
     return NextResponse.json(
       { success: true, order: newOrder },

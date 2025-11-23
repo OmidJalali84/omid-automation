@@ -1,4 +1,3 @@
-// server.js
 const puppeteer = require("puppeteer");
 const escpos = require("escpos");
 escpos.Network = require("escpos-network");
@@ -14,6 +13,8 @@ const port = process.env.PORT || 3001;
 const printerIP = process.env.PRINTER_IP || "192.168.1.25";
 const printerPort = process.env.PRINTER_PORT || 9100;
 const restaurantId = process.env.RESTAURANT_ID || "amiralmomenin";
+const MAIN_API_URL = process.env.MAIN_API_URL || "http://localhost:3000";
+const POLL_INTERVAL = 2000; // Check every 2 seconds
 
 app.use(cors());
 app.use(express.json());
@@ -48,7 +49,6 @@ function generateReceiptHTML(order) {
         padding: 0;
         background: #fff;
       }
-
       body {
         width: 570px;
         max-width: 570px;
@@ -58,7 +58,6 @@ function generateReceiptHTML(order) {
         box-sizing: border-box;
         color: #000;
       }
-
       .brand {
         text-align: center;
         font-size: 34px;
@@ -66,7 +65,6 @@ function generateReceiptHTML(order) {
         margin: 0;
         padding-top: 2px;
       }
-
       .kitchen-header {
         text-align: center;
         background: #000;
@@ -77,14 +75,12 @@ function generateReceiptHTML(order) {
         margin: 10px 0 12px 0;
         border-radius: 6px;
       }
-
       .info-box {
         border: 2px solid #000;
         padding: 10px 12px;
         margin-bottom: 12px;
         border-radius: 6px;
       }
-
       .info-row {
         display: flex;
         justify-content: space-between;
@@ -95,21 +91,18 @@ function generateReceiptHTML(order) {
       }
       .info-row:last-child { border-bottom: none; }
       .info-row.mega2 { font-size: 36px; font-weight: 900; }
-
       .items-table {
         width: 100%;
         border-collapse: collapse;
         margin-bottom: 10px;
         table-layout: fixed;
       }
-
       .items-table thead th {
         padding: 8px 10px;
         font-size: 18px;
         border: 1px solid #000;
         background: #fafafa;
       }
-
       .items-table tbody td {
         padding: 10px;
         font-size: 24px;
@@ -117,20 +110,17 @@ function generateReceiptHTML(order) {
         vertical-align: middle;
         word-break: break-word;
       }
-
       .items-table .qty-col, .items-table td.qty {
         width: 110px;
         text-align: center;
         font-weight: 800;
         font-size: 32px;
       }
-
       .items-table .name-col, .items-table td.name {
         text-align: right;
         padding-right: 14px;
         font-size: 26px;
       }
-
       .footer {
         text-align: center;
         font-size: 14px;
@@ -142,24 +132,20 @@ function generateReceiptHTML(order) {
   <body>
     <div class="brand">UNIFOOD</div>
     <div class="kitchen-header">سفارش آشپزخانه</div>
-
     <div class="info-box">
       <div class="info-row">
         <span>شماره سفارش:</span>
         <span>${orderNum}</span>
       </div>
-
       <div class="info-row mega2">
         <span>کد آشپزخانه:</span>
         <span>${kitchenCode}</span>
       </div>
-
       <div class="info-row">
         <span>زمان:</span>
         <span>${time}</span>
       </div>
     </div>
-
     <table class="items-table">
       <thead>
         <tr>
@@ -171,7 +157,6 @@ function generateReceiptHTML(order) {
         ${itemRows}
       </tbody>
     </table>
-
     <div class="footer">
       UNIFOOD Kitchen • ${date}
     </div>
@@ -229,6 +214,53 @@ async function printHTML(html) {
   });
 }
 
+// ✅ NEW: Poll print queue and process orders
+async function pollPrintQueue() {
+  try {
+    const response = await fetch(
+      `${MAIN_API_URL}/api/print-queue?restaurantId=${restaurantId}`
+    );
+
+    if (!response.ok) {
+      console.error("Failed to fetch print queue:", response.statusText);
+      return;
+    }
+
+    const queue = await response.json();
+
+    if (queue.length === 0) {
+      return; // No orders to print
+    }
+
+    console.log(`📋 Found ${queue.length} order(s) in print queue`);
+
+    for (const order of queue) {
+      try {
+        console.log(`🖨️ Printing order: ${order.id}`);
+        const html = generateReceiptHTML(order);
+        await printHTML(html);
+
+        // ✅ Remove from queue after successful print
+        const deleteResponse = await fetch(
+          `${MAIN_API_URL}/api/print-queue/${order.id}`,
+          { method: "DELETE" }
+        );
+
+        if (deleteResponse.ok) {
+          console.log(`✅ Order ${order.id} printed and removed from queue`);
+        } else {
+          console.error(`⚠️ Failed to remove order ${order.id} from queue`);
+        }
+      } catch (printError) {
+        console.error(`❌ Failed to print order ${order.id}:`, printError);
+        // Don't remove from queue if printing failed - will retry next poll
+      }
+    }
+  } catch (error) {
+    console.error("❌ Polling error:", error.message);
+  }
+}
+
 // Health check endpoint
 app.get("/health", (req, res) => {
   res.json({
@@ -239,7 +271,7 @@ app.get("/health", (req, res) => {
   });
 });
 
-// Print order endpoint
+// Manual print endpoint (for testing)
 app.post("/print-order", async (req, res) => {
   try {
     const orderData = req.body.order;
@@ -250,7 +282,7 @@ app.post("/print-order", async (req, res) => {
       });
     }
 
-    console.log(`🖨️ Printing order: ${orderData.id}`);
+    console.log(`🖨️ Manual print request for order: ${orderData.id}`);
     const html = generateReceiptHTML(orderData);
     await printHTML(html);
 
@@ -262,62 +294,13 @@ app.post("/print-order", async (req, res) => {
   }
 });
 
-// Preview HTML endpoint (for testing)
-app.post("/preview-receipt", async (req, res) => {
-  try {
-    const html = generateReceiptHTML(req.body.order || {});
-    res.set("Content-Type", "text/html");
-    res.send(html);
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
-
 app.listen(port, () => {
   console.log(`🖨️ Print Server running at http://localhost:${port}`);
   console.log(`📡 Restaurant: ${restaurantId}`);
   console.log(`🖨️ Printer: ${printerIP}:${printerPort}`);
+  console.log(`🔄 Polling interval: ${POLL_INTERVAL}ms`);
 });
 
-const MAIN_API_URL = process.env.MAIN_API_URL || "http://localhost:3000";
-const POLL_INTERVAL = 1000; // Check every 1 seconds
-
-let lastCheckedTime = new Date();
-
-async function pollForNewOrders() {
-  try {
-    const response = await fetch(
-      `${MAIN_API_URL}/api/orders?restaurant=${restaurantId}&since=${lastCheckedTime.toISOString()}`
-    );
-
-    if (!response.ok) {
-      console.error("Failed to fetch orders:", response.statusText);
-      return;
-    }
-
-    const orders = await response.json();
-
-    for (const order of orders) {
-      // Only print orders for this restaurant that are "pending"
-      if (order.restaurantId === restaurantId && order.status === "pending") {
-        console.log(`📥 New order detected: ${order.id}`);
-
-        try {
-          const html = generateReceiptHTML(order);
-          await printHTML(html);
-          console.log(`✅ Order ${order.id} printed successfully`);
-        } catch (printError) {
-          console.error(`❌ Failed to print order ${order.id}:`, printError);
-        }
-      }
-    }
-
-    lastCheckedTime = new Date();
-  } catch (error) {
-    console.error("❌ Polling error:", error.message);
-  }
-}
-
-// Start polling
-console.log(`🔄 Starting order polling (every ${POLL_INTERVAL}ms)...`);
-setInterval(pollForNewOrders, POLL_INTERVAL);
+// ✅ Start polling the print queue
+console.log(`🔄 Starting print queue polling...`);
+setInterval(pollPrintQueue, POLL_INTERVAL);
