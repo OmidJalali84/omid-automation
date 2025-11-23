@@ -44,14 +44,15 @@ async function writeMenu(menu: any) {
 // PATCH - Update order status
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params; // Await params
     const { status } = await request.json();
     const orders = await readOrders();
     const menu = await readMenu();
 
-    const orderIndex = orders.findIndex((o: any) => o.id === params.id);
+    const orderIndex = orders.findIndex((o: any) => o.id === id);
 
     if (orderIndex === -1) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
@@ -100,13 +101,14 @@ export async function PATCH(
 // DELETE - Delete order and restore inventory
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params; // Await params
     const orders = await readOrders();
     const menu = await readMenu();
 
-    const orderIndex = orders.findIndex((o: any) => o.id === params.id);
+    const orderIndex = orders.findIndex((o: any) => o.id === id);
 
     if (orderIndex === -1) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });

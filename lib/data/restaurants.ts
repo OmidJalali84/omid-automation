@@ -1,17 +1,17 @@
 export type RestaurantKey = "kaktus" | "zitoun" | "toranj" | "amiralmomenin";
 
 export type Restaurant = {
-  id: string;
+  key: RestaurantKey;
   name: string;
   description: string;
+  items: MenuMap;
 };
 
 type Category = "غذای ایرانی" | "فست فود" | "پیتزا" | "صبحانه";
-export type MenuItem = {
+type MenuItem = {
   id: number;
   name: string;
   price: number;
-  category: string;
   image: string;
   available: boolean;
 };
