@@ -1,0 +1,23 @@
+{
+  "amiralmomenin": {
+    "id": "amiralmomenin",
+    "name": "امیرالمومنین",
+    "description": "سلف سرویس اصلی دانشگاه با ظرفیت بالا و سرویس‌دهی سریع"
+  },
+  "kaktus": {
+    "id": "kaktus",
+    "name": "کاکتوس",
+    "description": "فست‌فود دانشجویی با سرو سریع و تنوع بالا"
+  },
+  "zitoun": {
+    "id": "zitoun",
+    "name": "زیتون",
+    "description": "غذاهای ایرانی خانگی با کیفیت ثابت"
+  },
+  "toranj": {
+    "id": "toranj",
+    "name": "ترنج",
+    "description": "سلامت‌محور با سالادها و نوشیدنی‌های تازه"
+  }
+}
+

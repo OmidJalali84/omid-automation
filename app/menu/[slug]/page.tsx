@@ -1,3 +1,4 @@
+// app/menu/[slug]/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -10,13 +11,17 @@ export default function FreeOrderRestaurantPage() {
 
   type Category = "غذای ایرانی" | "فست فود" | "پیتزا" | "صبحانه";
   const categories: Category[] = ["غذای ایرانی", "فست فود", "پیتزا", "صبحانه"];
+
   type MenuItem = {
     id: number;
     name: string;
     price: number;
     image: string;
     available: boolean;
+    quantity?: number;
+    category?: string;
   };
+
   const [activeCategory, setActiveCategory] = useState<Category>("غذای ایرانی");
   const params = useParams();
   const router = useRouter();
@@ -24,11 +29,44 @@ export default function FreeOrderRestaurantPage() {
   const restaurant = restaurants[key];
 
   const [cart, setCart] = useState<Record<number, number>>({});
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch menu from API
+  useEffect(() => {
+    const fetchMenu = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch("/api/menu");
+        if (response.ok) {
+          const data = await response.json();
+          const restaurantMenu = data[key] || [];
+          setMenuItems(restaurantMenu);
+        }
+      } catch (error) {
+        console.error("Failed to fetch menu:", error);
+        // Fallback to mock data if API fails
+        if (restaurant?.items) {
+          const mockItems = Object.values(
+            restaurant.items
+          ).flat() as MenuItem[];
+          setMenuItems(mockItems);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMenu();
+    // Refresh menu every 30 seconds to catch inventory changes
+    const interval = setInterval(fetchMenu, 30000);
+    return () => clearInterval(interval);
+  }, [key, restaurant]);
 
   const scrollToCategory = (category: Category) => {
     const element = document.getElementById(`category-${category}`);
     if (element) {
-      const offset = 180; // Account for sticky header and category pills
+      const offset = 180;
       const elementPosition = element.getBoundingClientRect().top;
       const offsetPosition = elementPosition + window.pageYOffset - offset;
       window.scrollTo({
@@ -39,10 +77,9 @@ export default function FreeOrderRestaurantPage() {
     }
   };
 
-  // Detect which category is in view while scrolling
   useEffect(() => {
     const handleScroll = () => {
-      const scrollPosition = window.scrollY + 200; // Offset for header
+      const scrollPosition = window.scrollY + 200;
 
       for (const cat of categories) {
         const element = document.getElementById(`category-${cat}`);
@@ -65,6 +102,7 @@ export default function FreeOrderRestaurantPage() {
 
   const addToCart = (id: number) =>
     setCart((prev) => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
+
   const removeFromCart = (id: number) =>
     setCart((prev) => {
       const next = { ...prev };
@@ -75,10 +113,23 @@ export default function FreeOrderRestaurantPage() {
       return next;
     });
 
-  const items = restaurant?.items || {};
+  // Group items by category from fetched data
+  const itemsByCategory: Record<Category, MenuItem[]> = {
+    "غذای ایرانی": [],
+    "فست فود": [],
+    پیتزا: [],
+    صبحانه: [],
+  };
+
+  menuItems.forEach((item) => {
+    const category = (item.category || "غذای ایرانی") as Category;
+    if (itemsByCategory[category]) {
+      itemsByCategory[category].push(item);
+    }
+  });
 
   // Get all items from all categories
-  const allItems = Object.values(items).flat() as MenuItem[];
+  const allItems = menuItems;
 
   const getCartTotal = () => {
     let total = 0;
@@ -102,7 +153,6 @@ export default function FreeOrderRestaurantPage() {
   const handleCheckout = () => {
     if (cartItems.length === 0) return;
 
-    // ذخیره اطلاعات سفارش در sessionStorage
     const orderData = {
       restaurant: restaurant.name,
       restaurantId: key,
@@ -126,6 +176,14 @@ export default function FreeOrderRestaurantPage() {
     return (
       <div className="min-h-screen flex items-center justify-center text-white">
         رستوران یافت نشد
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+        <div className="text-white text-xl">در حال بارگذاری...</div>
       </div>
     );
   }
@@ -191,68 +249,89 @@ export default function FreeOrderRestaurantPage() {
             </div>
 
             {/* Menu Items by Category */}
-            {categories.map((cat) => (
-              <div key={cat} id={`category-${cat}`} className="mb-8">
-                <h2 className="text-2xl font-bold text-white mb-4">{cat}</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {(items[cat] || []).map((item) => (
-                    <div
-                      key={item.id}
-                      className={`bg-gradient-to-br from-slate-800/80 to-slate-800/40 backdrop-blur-xl rounded-2xl p-5 border ${
-                        item.available
-                          ? "border-slate-700/50 hover:border-emerald-500/50"
-                          : "border-slate-700/30 opacity-60"
-                      } transition-all duration-300`}
-                    >
-                      {/* Image */}
-                      <div className="w-full h-32 bg-gradient-to-br from-slate-700/50 to-slate-600/30 rounded-xl flex items-center justify-center text-6xl mb-4">
-                        {item.image}
-                      </div>
+            {categories.map((cat) => {
+              const categoryItems = itemsByCategory[cat] || [];
 
-                      {/* Info */}
-                      <div className="flex items-start justify-between mb-4">
-                        <div>
-                          <h3 className="text-white font-bold text-lg mb-1">
-                            {item.name}
-                          </h3>
-                          <p className="text-emerald-400 font-bold text-lg">
-                            {item.price.toLocaleString()} تومان
-                          </p>
-                        </div>
-                        {!item.available && (
-                          <span className="px-2 py-1 bg-red-500/10 text-red-400 text-xs rounded-lg border border-red-500/20">
-                            ناموجود
-                          </span>
-                        )}
-                      </div>
+              if (categoryItems.length === 0) return null;
 
-                      {/* Add to Cart */}
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => removeFromCart(item.id)}
-                          disabled={!item.available || !cart[item.id]}
-                          className="w-10 h-10 bg-slate-700/50 hover:bg-slate-600/50 disabled:opacity-30 disabled:cursor-not-allowed text-white rounded-lg font-bold text-xl transition-colors flex items-center justify-center"
-                        >
-                          -
-                        </button>
-                        <div className="flex-1 text-center">
-                          <span className="text-white font-bold text-lg">
-                            {cart[item.id] || 0}
-                          </span>
+              return (
+                <div key={cat} id={`category-${cat}`} className="mb-8">
+                  <h2 className="text-2xl font-bold text-white mb-4">{cat}</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {categoryItems.map((item) => (
+                      <div
+                        key={item.id}
+                        className={`bg-gradient-to-br from-slate-800/80 to-slate-800/40 backdrop-blur-xl rounded-2xl p-5 border ${
+                          item.available && item.quantity && item.quantity > 0
+                            ? "border-slate-700/50 hover:border-emerald-500/50"
+                            : "border-slate-700/30 opacity-60"
+                        } transition-all duration-300`}
+                      >
+                        {/* Image */}
+                        <div className="w-full h-32 bg-gradient-to-br from-slate-700/50 to-slate-600/30 rounded-xl flex items-center justify-center text-6xl mb-4">
+                          {item.image}
                         </div>
-                        <button
-                          onClick={() => addToCart(item.id)}
-                          disabled={!item.available}
-                          className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 disabled:opacity-30 disabled:cursor-not-allowed text-white rounded-lg font-bold text-xl transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center"
-                        >
-                          +
-                        </button>
+
+                        {/* Info */}
+                        <div className="flex items-start justify-between mb-4">
+                          <div>
+                            <h3 className="text-white font-bold text-lg mb-1">
+                              {item.name}
+                            </h3>
+                            <p className="text-emerald-400 font-bold text-lg">
+                              {item.price.toLocaleString()} تومان
+                            </p>
+                          </div>
+                          {!item.available ||
+                          !item.quantity ||
+                          item.quantity <= 0 ? (
+                            <span className="px-2 py-1 bg-red-500/10 text-red-400 text-xs rounded-lg border border-red-500/20">
+                              ناموجود
+                            </span>
+                          ) : (
+                            <span className="px-2 py-1 bg-emerald-500/10 text-emerald-400 text-xs rounded-lg border border-emerald-500/20">
+                              موجود
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Add to Cart */}
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => removeFromCart(item.id)}
+                            disabled={
+                              !item.available ||
+                              !item.quantity ||
+                              item.quantity <= 0 ||
+                              !cart[item.id]
+                            }
+                            className="w-10 h-10 bg-slate-700/50 hover:bg-slate-600/50 disabled:opacity-30 disabled:cursor-not-allowed text-white rounded-lg font-bold text-xl transition-colors flex items-center justify-center"
+                          >
+                            -
+                          </button>
+                          <div className="flex-1 text-center">
+                            <span className="text-white font-bold text-lg">
+                              {cart[item.id] || 0}
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => addToCart(item.id)}
+                            disabled={
+                              !item.available ||
+                              !item.quantity ||
+                              item.quantity <= 0
+                            }
+                            className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 disabled:opacity-30 disabled:cursor-not-allowed text-white rounded-lg font-bold text-xl transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center"
+                          >
+                            +
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Cart Sidebar - Desktop Only */}

@@ -1,11 +1,11 @@
-// app/api/orders/route.ts
+// app/api/orders/route.ts - Updated with inventory deduction
 import { NextRequest, NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
 
 const ordersFilePath = path.join(process.cwd(), "data", "orders.json");
+const menuFilePath = path.join(process.cwd(), "data", "menu.json");
 
-// Ensure data directory exists
 async function ensureDataDir() {
   const dataDir = path.join(process.cwd(), "data");
   try {
@@ -15,7 +15,6 @@ async function ensureDataDir() {
   }
 }
 
-// Read orders from file
 async function readOrders() {
   try {
     await ensureDataDir();
@@ -26,13 +25,26 @@ async function readOrders() {
   }
 }
 
-// Write orders to file
 async function writeOrders(orders: any[]) {
   await ensureDataDir();
   await fs.writeFile(ordersFilePath, JSON.stringify(orders, null, 2));
 }
 
-// Generate order ID
+async function readMenu() {
+  try {
+    await ensureDataDir();
+    const data = await fs.readFile(menuFilePath, "utf-8");
+    return JSON.parse(data);
+  } catch {
+    return {};
+  }
+}
+
+async function writeMenu(menu: any) {
+  await ensureDataDir();
+  await fs.writeFile(menuFilePath, JSON.stringify(menu, null, 2));
+}
+
 function generateOrderId() {
   const date = new Date();
   const year = date.getFullYear();
@@ -40,7 +52,6 @@ function generateOrderId() {
   return `ORD-${year}-${number}`;
 }
 
-// Generate kitchen number
 function generateKitchenNumber() {
   return Math.floor(Math.random() * 900) + 100;
 }
@@ -58,7 +69,7 @@ export async function GET() {
   }
 }
 
-// POST - Create new order
+// POST - Create new order with inventory deduction
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -73,8 +84,49 @@ export async function POST(request: NextRequest) {
       studentName,
     } = body;
 
-    const orders = await readOrders();
+    // Read current menu to check inventory
+    const menu = await readMenu();
+    const restaurantMenu = menu[restaurantId] || [];
 
+    // Validate inventory availability
+    for (const orderItem of items) {
+      const menuItem = restaurantMenu.find((m: any) => m.id === orderItem.id);
+      if (!menuItem) {
+        return NextResponse.json(
+          { error: `آیتم ${orderItem.name} یافت نشد` },
+          { status: 400 }
+        );
+      }
+      if (menuItem.quantity < orderItem.qty) {
+        return NextResponse.json(
+          {
+            error: `موجودی کافی برای ${orderItem.name} وجود ندارد. موجود: ${menuItem.quantity}`,
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Deduct inventory from menu
+    for (const orderItem of items) {
+      const itemIndex = restaurantMenu.findIndex(
+        (m: any) => m.id === orderItem.id
+      );
+      if (itemIndex !== -1) {
+        restaurantMenu[itemIndex].quantity -= orderItem.qty;
+
+        // Auto disable if quantity reaches 0
+        if (restaurantMenu[itemIndex].quantity <= 0) {
+          restaurantMenu[itemIndex].available = false;
+        }
+      }
+    }
+
+    menu[restaurantId] = restaurantMenu;
+    await writeMenu(menu);
+
+    // Create order
+    const orders = await readOrders();
     const newOrder = {
       id: generateOrderId(),
       kitchenNumber: generateKitchenNumber(),
@@ -82,7 +134,7 @@ export async function POST(request: NextRequest) {
       studentName: studentName || "کاربر سیستم",
       restaurant,
       restaurantId,
-      mealType: "ناهار", // Can be dynamic based on time
+      mealType: "ناهار",
       date: new Date().toLocaleDateString("fa-IR"),
       time: new Date().toLocaleTimeString("fa-IR", {
         hour: "2-digit",

@@ -1,0 +1,84 @@
+{
+  "amiralmomenin": [
+    {
+      "id": 1,
+      "name": "چلوکباب کوبیده",
+      "price": 160000,
+      "category": "غذای ایرانی",
+      "image": "🍖",
+      "available": false,
+      "quantity": 0,
+      "updatedAt": "2025-11-23T09:02:46.921Z"
+    },
+    {
+      "id": 2,
+      "name": "زرشکپلو با مرغ",
+      "price": 145000,
+      "category": "غذای ایرانی",
+      "image": "🍗",
+      "available": true,
+      "quantity": 100,
+      "updatedAt": "2025-11-23T08:55:32.762Z"
+    },
+    {
+      "id": 3,
+      "name": "چلو جوجه",
+      "price": 130000,
+      "category": "غذای ایرانی",
+      "image": "🍗",
+      "available": true
+    },
+    {
+      "id": 4,
+      "name": "چلو تاوا کبابی",
+      "price": 210000,
+      "category": "غذای ایرانی",
+      "image": "🍖",
+      "available": false
+    },
+    {
+      "id": 5,
+      "name": "نوشابه",
+      "price": 25000,
+      "category": "نوشیدنی",
+      "image": "🥤",
+      "available": true
+    },
+    {
+      "id": 6,
+      "name": "دوغ",
+      "price": 20000,
+      "category": "نوشیدنی",
+      "image": "🥛",
+      "available": true
+    }
+  ],
+  "kaktus": [
+    {
+      "id": 101,
+      "name": "همبرگر معمولی",
+      "price": 80000,
+      "category": "فست فود",
+      "image": "🍔",
+      "available": true
+    },
+    {
+      "id": 102,
+      "name": "چیزبرگر",
+      "price": 95000,
+      "category": "فست فود",
+      "image": "🍔",
+      "available": true
+    },
+    {
+      "id": 103,
+      "name": "پیتزا پپرونی",
+      "price": 150000,
+      "category": "پیتزا",
+      "image": "🍕",
+      "available": true
+    }
+  ],
+  "zitoun": [],
+  "toranj": []
+}

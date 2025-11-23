@@ -37,7 +37,7 @@
     "**/*.mts",
     "app/admin-panel/page.jsx",
     "next.config.js"
-  ],
+, "app/menu/[slug]/page.tsx"  ],
   "exclude": [
     "node_modules"
   ]

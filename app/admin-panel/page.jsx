@@ -14,63 +14,467 @@ import {
   BarChart3,
   DollarSign,
   RefreshCw,
+  X,
 } from "lucide-react";
 
-const mockMenuItems = [
-  {
-    id: 1,
-    name: "چلوکباب کوبیده",
-    price: 160000,
+function MenuManagementSection() {
+  const [menuItems, setMenuItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [editingItem, setEditingItem] = useState(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    price: "",
     category: "غذای ایرانی",
-    available: true,
+    quantity: "",
     image: "🍖",
-  },
-  {
-    id: 2,
-    name: "زرشکپلو با مرغ",
-    price: 145000,
-    category: "غذای ایرانی",
-    available: true,
-    image: "🍗",
-  },
-  {
-    id: 3,
-    name: "چلو جوجه",
-    price: 130000,
-    category: "غذای ایرانی",
-    available: true,
-    image: "🍗",
-  },
-  {
-    id: 4,
-    name: "چلو تاوا کبابی",
-    price: 210000,
-    category: "غذای ایرانی",
-    available: false,
-    image: "🍖",
-  },
-  {
-    id: 5,
-    name: "نوشابه",
-    price: 25000,
-    category: "نوشیدنی",
-    available: true,
-    image: "🥤",
-  },
-  {
-    id: 6,
-    name: "دوغ",
-    price: 20000,
-    category: "نوشیدنی",
-    available: true,
-    image: "🥛",
-  },
-];
+  });
 
+  const restaurantId = "amiralmomenin";
+
+  const fetchMenuItems = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/menu`);
+      if (response.ok) {
+        const data = await response.json();
+        setMenuItems(data[restaurantId] || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch menu:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMenuItems();
+  }, []);
+
+  const handleAddItem = async () => {
+    if (!formData.name || !formData.price || formData.price === "") {
+      alert("لطفا نام و قیمت را پر کنید");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/menu", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          restaurantId,
+          name: formData.name,
+          price: parseInt(formData.price) || 0,
+          category: formData.category,
+          quantity: parseInt(formData.quantity) || 0,
+          image: formData.image || "🍖",
+        }),
+      });
+
+      if (response.ok) {
+        await fetchMenuItems();
+        setShowAddModal(false);
+        setFormData({
+          name: "",
+          price: "",
+          category: "غذای ایرانی",
+          quantity: "",
+          image: "🍖",
+        });
+      } else {
+        const error = await response.json();
+        alert("خطا: " + error.error);
+      }
+    } catch (error) {
+      console.error("Failed to add item:", error);
+      alert("خطا در افزودن آیتم");
+    }
+  };
+
+  const handleUpdateItem = async () => {
+    if (!editingItem) return;
+
+    if (!editingItem.name || !editingItem.price) {
+      alert("لطفا نام و قیمت را پر کنید");
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `/api/menu/${restaurantId}/${editingItem.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(editingItem),
+        }
+      );
+
+      if (response.ok) {
+        await fetchMenuItems();
+        setEditingItem(null);
+      } else {
+        const error = await response.json();
+        alert("خطا: " + error.error);
+      }
+    } catch (error) {
+      console.error("Failed to update item:", error);
+      alert("خطا در بروزرسانی آیتم");
+    }
+  };
+
+  const handleDeleteItem = async (itemId) => {
+    if (!confirm("آیا مطمئن هستید که می‌خواهید این آیتم را حذف کنید؟")) return;
+
+    try {
+      const response = await fetch(`/api/menu/${restaurantId}/${itemId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        await fetchMenuItems();
+      } else {
+        const error = await response.json();
+        alert("خطا: " + error.error);
+      }
+    } catch (error) {
+      console.error("Failed to delete item:", error);
+      alert("خطا در حذف آیتم");
+    }
+  };
+
+  if (loading) {
+    return <div className="text-white text-center py-8">در حال بارگذاری...</div>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-white">مدیریت منو</h2>
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-xl transition-all shadow-lg shadow-emerald-500/30"
+        >
+          <Plus className="w-5 h-5" />
+          افزودن غذا
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {menuItems.map((item) => (
+          <div
+            key={item.id}
+            className="bg-slate-800/50 backdrop-blur-xl rounded-2xl p-5 border border-slate-700/50 hover:border-slate-600/50 transition-all"
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-16 h-16 bg-gradient-to-br from-slate-700/50 to-slate-600/30 rounded-xl flex items-center justify-center text-4xl">
+                {item.image}
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setEditingItem(item)}
+                  className="p-2 bg-slate-700/50 hover:bg-slate-600/50 text-white rounded-lg transition-colors"
+                  title="ویرایش"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => handleDeleteItem(item.id)}
+                  className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition-colors border border-red-500/20"
+                  title="حذف"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            <h3 className="text-white font-bold mb-1">{item.name}</h3>
+            <p className="text-slate-400 text-sm mb-2">{item.category}</p>
+            <div className="space-y-1">
+              <p className="text-emerald-400 font-bold">
+                {item.price.toLocaleString()} تومان
+              </p>
+              <p className="text-yellow-400 font-semibold text-sm">
+                موجودی: {item.quantity || 0}
+              </p>
+              <p className={`text-xs font-medium ${
+                item.available ? "text-emerald-400" : "text-red-400"
+              }`}>
+                وضعیت: {item.available ? "✓ فعال" : "✗ غیرفعال"}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Add Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={() => setShowAddModal(false)}
+          />
+          <div className="relative w-full max-w-md bg-slate-800/95 backdrop-blur-xl rounded-3xl p-6 border border-slate-700/50">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-white">افزودن غذا جدید</h2>
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Name */}
+              <div>
+                <label className="block text-slate-300 text-sm font-medium mb-2">
+                  نام غذا
+                </label>
+                <input
+                  type="text"
+                  placeholder="مثال: چلوکباب کوبیده"
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                  className="w-full px-4 py-3 bg-slate-700/50 text-white placeholder-slate-500 rounded-xl border border-slate-600/50 focus:border-emerald-500/50 focus:outline-none transition-colors"
+                />
+              </div>
+
+              {/* Price */}
+              <div>
+                <label className="block text-slate-300 text-sm font-medium mb-2">
+                  قیمت (تومان)
+                </label>
+                <input
+                  type="number"
+                  placeholder="0"
+                  value={formData.price}
+                  onChange={(e) =>
+                    setFormData({ ...formData, price: e.target.value })
+                  }
+                  className="w-full px-4 py-3 bg-slate-700/50 text-white placeholder-slate-500 rounded-xl border border-slate-600/50 focus:border-emerald-500/50 focus:outline-none transition-colors"
+                />
+              </div>
+
+              {/* Quantity */}
+              <div>
+                <label className="block text-slate-300 text-sm font-medium mb-2">
+                  موجودی (تعداد)
+                </label>
+                <input
+                  type="number"
+                  placeholder="0"
+                  value={formData.quantity}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      quantity: e.target.value,
+                    })
+                  }
+                  className="w-full px-4 py-3 bg-slate-700/50 text-white placeholder-slate-500 rounded-xl border border-slate-600/50 focus:border-emerald-500/50 focus:outline-none transition-colors"
+                />
+              </div>
+
+              {/* Category */}
+              <div>
+                <label className="block text-slate-300 text-sm font-medium mb-2">
+                  دسته‌بندی
+                </label>
+                <select
+                  value={formData.category}
+                  onChange={(e) =>
+                    setFormData({ ...formData, category: e.target.value })
+                  }
+                  className="w-full px-4 py-3 bg-slate-700/50 text-white rounded-xl border border-slate-600/50 focus:border-emerald-500/50 focus:outline-none transition-colors"
+                >
+                  <option>غذای ایرانی</option>
+                  <option>فست فود</option>
+                  <option>پیتزا</option>
+                  <option>صبحانه</option>
+                </select>
+              </div>
+
+              {/* Emoji */}
+              <div>
+                <label className="block text-slate-300 text-sm font-medium mb-2">
+                  ایموجی
+                </label>
+                <input
+                  type="text"
+                  placeholder="🍖"
+                  maxLength="2"
+                  value={formData.image}
+                  onChange={(e) =>
+                    setFormData({ ...formData, image: e.target.value })
+                  }
+                  className="w-full px-4 py-3 bg-slate-700/50 text-white placeholder-slate-500 rounded-xl border border-slate-600/50 focus:border-emerald-500/50 focus:outline-none transition-colors text-center text-2xl"
+                />
+              </div>
+
+              <button
+                onClick={handleAddItem}
+                className="w-full py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-emerald-500/30 mt-6"
+              >
+                افزودن
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {editingItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={() => setEditingItem(null)}
+          />
+          <div className="relative w-full max-w-md bg-slate-800/95 backdrop-blur-xl rounded-3xl p-6 border border-slate-700/50 max-h-96 overflow-y-auto">
+            <div className="flex items-center justify-between mb-6 sticky top-0 bg-slate-800/95">
+              <h2 className="text-xl font-bold text-white">ویرایش غذا</h2>
+              <button
+                onClick={() => setEditingItem(null)}
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Name */}
+              <div>
+                <label className="block text-slate-300 text-sm font-medium mb-2">
+                  نام غذا
+                </label>
+                <input
+                  type="text"
+                  placeholder="نام غذا"
+                  value={editingItem.name}
+                  onChange={(e) =>
+                    setEditingItem({ ...editingItem, name: e.target.value })
+                  }
+                  className="w-full px-4 py-3 bg-slate-700/50 text-white placeholder-slate-500 rounded-xl border border-slate-600/50 focus:border-emerald-500/50 focus:outline-none transition-colors"
+                />
+              </div>
+
+              {/* Price */}
+              <div>
+                <label className="block text-slate-300 text-sm font-medium mb-2">
+                  قیمت (تومان)
+                </label>
+                <input
+                  type="number"
+                  placeholder="0"
+                  value={editingItem.price}
+                  onChange={(e) =>
+                    setEditingItem({
+                      ...editingItem,
+                      price: parseInt(e.target.value) || 0,
+                    })
+                  }
+                  className="w-full px-4 py-3 bg-slate-700/50 text-white placeholder-slate-500 rounded-xl border border-slate-600/50 focus:border-emerald-500/50 focus:outline-none transition-colors"
+                />
+              </div>
+
+              {/* Quantity */}
+              <div>
+                <label className="block text-slate-300 text-sm font-medium mb-2">
+                  موجودی (تعداد)
+                </label>
+                <input
+                  type="number"
+                  placeholder="0"
+                  value={editingItem.quantity || 0}
+                  onChange={(e) =>
+                    setEditingItem({
+                      ...editingItem,
+                      quantity: parseInt(e.target.value) || 0,
+                    })
+                  }
+                  className="w-full px-4 py-3 bg-slate-700/50 text-white placeholder-slate-500 rounded-xl border border-slate-600/50 focus:border-emerald-500/50 focus:outline-none transition-colors"
+                />
+              </div>
+
+              {/* Category */}
+              <div>
+                <label className="block text-slate-300 text-sm font-medium mb-2">
+                  دسته‌بندی
+                </label>
+                <select
+                  value={editingItem.category}
+                  onChange={(e) =>
+                    setEditingItem({
+                      ...editingItem,
+                      category: e.target.value,
+                    })
+                  }
+                  className="w-full px-4 py-3 bg-slate-700/50 text-white rounded-xl border border-slate-600/50 focus:border-emerald-500/50 focus:outline-none transition-colors"
+                >
+                  <option>غذای ایرانی</option>
+                  <option>فست فود</option>
+                  <option>پیتزا</option>
+                  <option>صبحانه</option>
+                </select>
+              </div>
+
+              {/* Emoji */}
+              <div>
+                <label className="block text-slate-300 text-sm font-medium mb-2">
+                  ایموجی
+                </label>
+                <input
+                  type="text"
+                  placeholder="🍖"
+                  maxLength="2"
+                  value={editingItem.image}
+                  onChange={(e) =>
+                    setEditingItem({ ...editingItem, image: e.target.value })
+                  }
+                  className="w-full px-4 py-3 bg-slate-700/50 text-white placeholder-slate-500 rounded-xl border border-slate-600/50 focus:border-emerald-500/50 focus:outline-none transition-colors text-center text-2xl"
+                />
+              </div>
+
+              {/* Available Toggle */}
+              <div>
+                <label className="block text-slate-300 text-sm font-medium mb-2">
+                  وضعیت
+                </label>
+                <button
+                  onClick={() =>
+                    setEditingItem({
+                      ...editingItem,
+                      available: !editingItem.available,
+                    })
+                  }
+                  className={`w-full py-3 rounded-xl font-medium transition-all ${
+                    editingItem.available
+                      ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/50"
+                      : "bg-red-500/20 text-red-400 border border-red-500/50"
+                  }`}
+                >
+                  {editingItem.available ? "✓ فعال" : "✗ غیرفعال"}
+                </button>
+              </div>
+
+              <button
+                onClick={handleUpdateItem}
+                className="w-full py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-emerald-500/30 mt-6"
+              >
+                ذخیره تغییرات
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Main Admin Panel Component
 export default function RestaurantAdminPanel() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [orders, setOrders] = useState([]);
-  const [menuItems, setMenuItems] = useState(mockMenuItems);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [scanInput, setScanInput] = useState("");
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -79,7 +483,6 @@ export default function RestaurantAdminPanel() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Fetch orders from API
   const fetchOrders = async () => {
     try {
       setIsRefreshing(true);
@@ -98,12 +501,10 @@ export default function RestaurantAdminPanel() {
 
   useEffect(() => {
     fetchOrders();
-    // Auto-refresh every 10 seconds
     const interval = setInterval(fetchOrders, 10000);
     return () => clearInterval(interval);
   }, []);
 
-  // Update order status
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
       const response = await fetch(`/api/orders/${orderId}`, {
@@ -143,14 +544,6 @@ export default function RestaurantAdminPanel() {
     updateOrderStatus(orderId, "delivered");
     setSelectedOrder(null);
     setScannerOpen(false);
-  };
-
-  const toggleItemAvailability = (itemId) => {
-    setMenuItems(
-      menuItems.map((item) =>
-        item.id === itemId ? { ...item, available: !item.available } : item
-      )
-    );
   };
 
   const filteredOrders = orders.filter((order) => {
@@ -474,58 +867,7 @@ export default function RestaurantAdminPanel() {
           </div>
         )}
 
-        {activeTab === "menu" && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-white">مدیریت منو</h2>
-              <button className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-xl transition-all shadow-lg shadow-emerald-500/30">
-                <Plus className="w-5 h-5" />
-                افزودن غذا
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {menuItems.map((item) => (
-                <div
-                  key={item.id}
-                  className="bg-slate-800/50 backdrop-blur-xl rounded-2xl p-5 border border-slate-700/50"
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="w-16 h-16 bg-gradient-to-br from-slate-700/50 to-slate-600/30 rounded-xl flex items-center justify-center text-4xl">
-                      {item.image}
-                    </div>
-                    <button
-                      onClick={() => toggleItemAvailability(item.id)}
-                      className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
-                        item.available
-                          ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                          : "bg-red-500/10 text-red-400 border border-red-500/20"
-                      }`}
-                    >
-                      {item.available ? "موجود" : "ناموجود"}
-                    </button>
-                  </div>
-
-                  <h3 className="text-white font-bold mb-1">{item.name}</h3>
-                  <p className="text-slate-400 text-sm mb-2">{item.category}</p>
-                  <p className="text-emerald-400 font-bold mb-4">
-                    {item.price.toLocaleString()} تومان
-                  </p>
-
-                  <div className="flex gap-2">
-                    <button className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-slate-700/50 hover:bg-slate-600/50 text-white rounded-lg transition-colors">
-                      <Edit2 className="w-4 h-4" />
-                      ویرایش
-                    </button>
-                    <button className="flex items-center justify-center gap-2 px-3 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition-colors border border-red-500/20">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        {activeTab === "menu" && <MenuManagementSection />}
       </main>
 
       {scannerOpen && (
