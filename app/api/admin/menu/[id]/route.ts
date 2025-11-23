@@ -21,7 +21,7 @@ async function writeMenu(menu: any) {
 
 export async function PATCH(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   // Verify authentication
   const auth = await verifyAuth(request);
@@ -30,7 +30,7 @@ export async function PATCH(
   }
 
   try {
-    const { id } = await context.params;
+    const { id } = await params; // ✅ AWAIT params
     const body = await request.json();
     const itemId = parseInt(id);
 
@@ -70,7 +70,7 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   // Verify authentication
   const auth = await verifyAuth(request);
@@ -79,7 +79,7 @@ export async function DELETE(
   }
 
   try {
-    const { id } = await context.params;
+    const { id } = await params; // ✅ AWAIT params
     const itemId = parseInt(id);
 
     const allMenus = await readMenu();

@@ -29,18 +29,13 @@ async function writeMenu(menu: any) {
   await fs.writeFile(menuFilePath, JSON.stringify(menu, null, 2));
 }
 
-interface Params {
-  restaurantId: string;
-  itemId: string;
-}
-
 // PATCH - Update menu item
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<Params> }
+  { params }: { params: Promise<{ restaurantId: string; itemId: string }> }
 ) {
   try {
-    const { restaurantId, itemId } = await params;
+    const { restaurantId, itemId } = await params; // ✅ AWAIT params
     const body = await request.json();
     const menu = await readMenu();
 
@@ -86,10 +81,10 @@ export async function PATCH(
 // DELETE - Delete menu item
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<Params> }
+  { params }: { params: Promise<{ restaurantId: string; itemId: string }> }
 ) {
   try {
-    const { restaurantId, itemId } = await params;
+    const { restaurantId, itemId } = await params; // ✅ AWAIT params
     const menu = await readMenu();
 
     if (!menu[restaurantId]) {

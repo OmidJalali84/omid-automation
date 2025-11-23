@@ -1,7 +1,8 @@
-// app/api/orders/[id]/route.ts
+// app/api/admin/orders/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
+import { verifyAuth } from "@/lib/middleware/auth";
 
 const ordersFilePath = path.join(process.cwd(), "data", "orders.json");
 
@@ -18,11 +19,17 @@ async function writeOrders(orders: any[]) {
   await fs.writeFile(ordersFilePath, JSON.stringify(orders, null, 2));
 }
 
-// PATCH - Update order status
-export async function PATCH(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
+interface RouteContext {
+  params: Promise<{ id: string }>;
+}
+
+export async function PATCH(request: NextRequest, context: RouteContext) {
+  // Verify authentication
+  const auth = await verifyAuth(request);
+  if (!auth) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const { id } = await context.params;
     const { status } = await request.json();
@@ -32,6 +39,11 @@ export async function PATCH(
 
     if (orderIndex === -1) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+
+    // Verify restaurant access
+    if (orders[orderIndex].restaurantId !== auth.restaurantId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     orders[orderIndex].status = status;
@@ -48,11 +60,13 @@ export async function PATCH(
   }
 }
 
-// DELETE - Delete order
-export async function DELETE(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(request: NextRequest, context: RouteContext) {
+  // Verify authentication
+  const auth = await verifyAuth(request);
+  if (!auth) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const { id } = await context.params;
     const orders = await readOrders();

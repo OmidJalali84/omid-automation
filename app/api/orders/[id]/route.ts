@@ -1,4 +1,4 @@
-// app/api/orders/[id]/route.ts - Fixed version
+// app/api/orders/[id]/route.ts - Updated with inventory restoration
 import { NextRequest, NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
@@ -17,7 +17,6 @@ async function ensureDataDir() {
 
 async function readOrders() {
   try {
-    await ensureDataDir();
     const data = await fs.readFile(ordersFilePath, "utf-8");
     return JSON.parse(data);
   } catch {
@@ -26,13 +25,11 @@ async function readOrders() {
 }
 
 async function writeOrders(orders: any[]) {
-  await ensureDataDir();
   await fs.writeFile(ordersFilePath, JSON.stringify(orders, null, 2));
 }
 
 async function readMenu() {
   try {
-    await ensureDataDir();
     const data = await fs.readFile(menuFilePath, "utf-8");
     return JSON.parse(data);
   } catch {
@@ -41,26 +38,20 @@ async function readMenu() {
 }
 
 async function writeMenu(menu: any) {
-  await ensureDataDir();
   await fs.writeFile(menuFilePath, JSON.stringify(menu, null, 2));
-}
-
-interface RouteParams {
-  id: string;
 }
 
 // PATCH - Update order status
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<RouteParams> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
     const { status } = await request.json();
     const orders = await readOrders();
     const menu = await readMenu();
 
-    const orderIndex = orders.findIndex((o: any) => o.id === id);
+    const orderIndex = orders.findIndex((o: any) => o.id === params.id);
 
     if (orderIndex === -1) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
@@ -99,7 +90,6 @@ export async function PATCH(
 
     return NextResponse.json({ success: true, order: orders[orderIndex] });
   } catch (error) {
-    console.error("Failed to update order:", error);
     return NextResponse.json(
       { error: "Failed to update order" },
       { status: 500 }
@@ -110,14 +100,13 @@ export async function PATCH(
 // DELETE - Delete order and restore inventory
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<RouteParams> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
     const orders = await readOrders();
     const menu = await readMenu();
 
-    const orderIndex = orders.findIndex((o: any) => o.id === id);
+    const orderIndex = orders.findIndex((o: any) => o.id === params.id);
 
     if (orderIndex === -1) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
@@ -147,7 +136,6 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Failed to delete order:", error);
     return NextResponse.json(
       { error: "Failed to delete order" },
       { status: 500 }

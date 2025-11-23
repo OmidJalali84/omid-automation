@@ -1,4 +1,4 @@
-// app/api/admin/orders/[id]/route.ts
+// app/api/admin/orders/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
@@ -15,75 +15,34 @@ async function readOrders() {
   }
 }
 
-async function writeOrders(orders: any[]) {
-  await fs.writeFile(ordersFilePath, JSON.stringify(orders, null, 2));
-}
-
-export async function PATCH(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
-  // Verify authentication
-  const auth = await verifyAuth(request);
-  if (!auth) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+// GET - Fetch orders (with optional filters for polling)
+export async function GET(request: NextRequest) {
   try {
-    const { id } = await context.params;
-    const { status } = await request.json();
-    const orders = await readOrders();
+    const { searchParams } = new URL(request.url);
+    const restaurant = searchParams.get("restaurant");
+    const since = searchParams.get("since");
 
-    const orderIndex = orders.findIndex((o: any) => o.id === id);
+    let orders = await readOrders();
 
-    if (orderIndex === -1) {
-      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    // Filter by restaurant
+    if (restaurant) {
+      orders = orders.filter((o: any) => o.restaurantId === restaurant);
     }
 
-    // Verify restaurant access
-    if (orders[orderIndex].restaurantId !== auth.restaurantId) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    // Filter by time (for polling)
+    if (since) {
+      const sinceDate = new Date(since);
+      orders = orders.filter((o: any) => {
+        const orderDate = new Date(o.createdAt);
+        return orderDate > sinceDate;
+      });
     }
 
-    orders[orderIndex].status = status;
-    orders[orderIndex].updatedAt = new Date().toISOString();
-
-    await writeOrders(orders);
-
-    return NextResponse.json({ success: true, order: orders[orderIndex] });
+    return NextResponse.json(orders);
   } catch (error) {
+    console.error("Failed to fetch orders:", error);
     return NextResponse.json(
-      { error: "Failed to update order" },
-      { status: 500 }
-    );
-  }
-}
-
-export async function DELETE(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
-  // Verify authentication
-  const auth = await verifyAuth(request);
-  if (!auth) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  try {
-    const { id } = await context.params;
-    const orders = await readOrders();
-    const filteredOrders = orders.filter((o: any) => o.id !== id);
-
-    if (orders.length === filteredOrders.length) {
-      return NextResponse.json({ error: "Order not found" }, { status: 404 });
-    }
-
-    await writeOrders(filteredOrders);
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    return NextResponse.json(
-      { error: "Failed to delete order" },
+      { error: "Failed to fetch orders" },
       { status: 500 }
     );
   }

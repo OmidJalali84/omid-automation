@@ -21,10 +21,10 @@ async function readRestaurants() {
 
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await context.params;
+    const { id } = await params; // ✅ AWAIT params
     const restaurants = await readRestaurants();
     const restaurant = restaurants[id];
 

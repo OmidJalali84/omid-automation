@@ -17,10 +17,10 @@ async function readMenu() {
 
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ restaurantId: string }> }
+  { params }: { params: Promise<{ restaurantId: string }> }
 ) {
   try {
-    const { restaurantId } = await context.params;
+    const { restaurantId } = await params; // ✅ AWAIT params
     const allMenus = await readMenu();
     const restaurantMenu = allMenus[restaurantId] || [];
 
