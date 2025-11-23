@@ -1,0 +1,27 @@
+[
+  {
+    "id": "ORD-2025-312383",
+    "kitchenNumber": 601,
+    "studentId": "4021101000",
+    "studentName": "کاربر سیستم",
+    "restaurant": "امیرالمومنین",
+    "restaurantId": "amiralmomenin",
+    "mealType": "ناهار",
+    "date": "۱۴۰۴/۹/۲",
+    "time": "۲۳:۵۱",
+    "status": "pending",
+    "items": [
+      {
+        "id": 2,
+        "name": "زرشکپلو با مرغ",
+        "qty": 1,
+        "price": 145000
+      }
+    ],
+    "total": 145000,
+    "paid": 75000,
+    "jettonWorth": 70000,
+    "createdAt": "2025-11-23T20:21:41.466Z",
+    "addedToQueueAt": "2025-11-23T20:21:41.468Z"
+  }
+]
