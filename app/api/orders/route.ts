@@ -1,93 +1,12 @@
 // app/api/orders/route.ts - Modified POST function
 import { NextRequest, NextResponse } from "next/server";
-import { promises as fs } from "fs";
-import path from "path";
-
-const ordersFilePath = path.join(process.cwd(), "data", "orders.json");
-const menuFilePath = path.join(process.cwd(), "data", "menu.json");
-const printQueueFilePath = path.join(process.cwd(), "data", "print-queue.json");
-
-async function ensureDataDir() {
-  const dataDir = path.join(process.cwd(), "data");
-  try {
-    await fs.access(dataDir);
-  } catch {
-    await fs.mkdir(dataDir, { recursive: true });
-  }
-}
-
-async function readOrders() {
-  try {
-    await ensureDataDir();
-    const data = await fs.readFile(ordersFilePath, "utf-8");
-    return JSON.parse(data);
-  } catch {
-    return [];
-  }
-}
-
-async function writeOrders(orders: any[]) {
-  await ensureDataDir();
-  await fs.writeFile(ordersFilePath, JSON.stringify(orders, null, 2));
-}
-
-async function readMenu() {
-  try {
-    await ensureDataDir();
-    const data = await fs.readFile(menuFilePath, "utf-8");
-    return JSON.parse(data);
-  } catch {
-    return {};
-  }
-}
-
-async function writeMenu(menu: any) {
-  await ensureDataDir();
-  await fs.writeFile(menuFilePath, JSON.stringify(menu, null, 2));
-}
-
-// ✅ NEW: Print queue functions
-async function readPrintQueue() {
-  try {
-    await ensureDataDir();
-    const data = await fs.readFile(printQueueFilePath, "utf-8");
-    return JSON.parse(data);
-  } catch {
-    return [];
-  }
-}
-
-async function writePrintQueue(queue: any[]) {
-  await ensureDataDir();
-  await fs.writeFile(printQueueFilePath, JSON.stringify(queue, null, 2));
-}
-
-async function addToPrintQueue(order: any) {
-  try {
-    const queue = await readPrintQueue();
-
-    // Check if already in queue
-    const exists = queue.some((item: any) => item.id === order.id);
-    if (exists) {
-      console.log(`⚠️ Order ${order.id} already in print queue`);
-      return;
-    }
-
-    // Add to queue with timestamp
-    const printJob = {
-      ...order,
-      addedToQueueAt: new Date().toISOString(),
-    };
-
-    queue.push(printJob);
-    await writePrintQueue(queue);
-
-    console.log(`✅ Added order ${order.id} to print queue`);
-  } catch (error) {
-    console.error("Failed to add to print queue:", error);
-    // Don't throw - we don't want to fail order creation if print queue fails
-  }
-}
+import {
+  getOrders,
+  addOrder,
+  getMenu,
+  setMenu,
+  addToPrintQueue,
+} from "@/lib/db/kv";
 
 function generateOrderId() {
   const date = new Date();
@@ -103,7 +22,7 @@ function generateKitchenNumber() {
 // GET - Fetch all orders
 export async function GET() {
   try {
-    const orders = await readOrders();
+    const orders = await getOrders();
     return NextResponse.json(orders);
   } catch (error) {
     return NextResponse.json(
@@ -128,9 +47,7 @@ export async function POST(request: NextRequest) {
       studentName,
     } = body;
 
-    // Read current menu to check inventory
-    const menu = await readMenu();
-    const restaurantMenu = menu[restaurantId] || [];
+    const restaurantMenu = await getMenu(restaurantId);
 
     // Validate inventory availability
     for (const orderItem of items) {
@@ -166,11 +83,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    menu[restaurantId] = restaurantMenu;
-    await writeMenu(menu);
+    await setMenu(restaurantId, restaurantMenu);
 
     // Create order
-    const orders = await readOrders();
     const newOrder = {
       id: generateOrderId(),
       kitchenNumber: generateKitchenNumber(),
@@ -197,11 +112,13 @@ export async function POST(request: NextRequest) {
       createdAt: new Date().toISOString(),
     };
 
-    orders.unshift(newOrder);
-    await writeOrders(orders);
+    await addOrder(newOrder);
 
-    // ✅ Add to print queue (directly, no HTTP call)
-    await addToPrintQueue(newOrder);
+    try {
+      await addToPrintQueue(newOrder);
+    } catch (error) {
+      console.error("Failed to enqueue print job:", error);
+    }
 
     return NextResponse.json(
       { success: true, order: newOrder },

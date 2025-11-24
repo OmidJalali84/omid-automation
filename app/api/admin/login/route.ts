@@ -2,21 +2,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sign } from "jsonwebtoken";
 import { compare } from "bcryptjs";
-import { promises as fs } from "fs";
-import path from "path";
+import { findAdminByUsername } from "@/lib/db/kv";
 
-const adminsFilePath = path.join(process.cwd(), "data", "admins.json");
 const JWT_SECRET =
   process.env.JWT_SECRET || "your-secret-key-change-in-production";
-
-async function readAdmins() {
-  try {
-    const data = await fs.readFile(adminsFilePath, "utf-8");
-    return JSON.parse(data);
-  } catch {
-    return [];
-  }
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,8 +18,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const admins = await readAdmins();
-    const admin = admins.find((a: any) => a.username === username);
+    const admin = await findAdminByUsername(username);
 
     if (!admin) {
       return NextResponse.json(

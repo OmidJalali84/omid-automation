@@ -1,28 +1,14 @@
 // app/api/menu/[restaurantId]/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { promises as fs } from "fs";
-import path from "path";
-
-const menuFilePath = path.join(process.cwd(), "data", "menu.json");
-
-async function readMenu() {
-  try {
-    const data = await fs.readFile(menuFilePath, "utf-8");
-    return JSON.parse(data);
-  } catch (error) {
-    console.error("Error reading menu file:", error);
-    return {};
-  }
-}
+import { getMenu as getMenuKV } from "@/lib/db/kv";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ restaurantId: string }> }
 ) {
   try {
-    const { restaurantId } = await params; // ✅ AWAIT params
-    const allMenus = await readMenu();
-    const restaurantMenu = allMenus[restaurantId] || [];
+    const { restaurantId } = await params;
+    const restaurantMenu = await getMenuKV(restaurantId);
 
     // Only return available items for public endpoint
     const availableItems = restaurantMenu.filter((item: any) => item.available);

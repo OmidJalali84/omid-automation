@@ -1,33 +1,6 @@
 // app/api/menu/[restaurantId]/[itemId]/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { promises as fs } from "fs";
-import path from "path";
-
-const menuFilePath = path.join(process.cwd(), "data", "menu.json");
-
-async function ensureDataDir() {
-  const dataDir = path.join(process.cwd(), "data");
-  try {
-    await fs.access(dataDir);
-  } catch {
-    await fs.mkdir(dataDir, { recursive: true });
-  }
-}
-
-async function readMenu() {
-  try {
-    await ensureDataDir();
-    const data = await fs.readFile(menuFilePath, "utf-8");
-    return JSON.parse(data);
-  } catch {
-    return {};
-  }
-}
-
-async function writeMenu(menu: any) {
-  await ensureDataDir();
-  await fs.writeFile(menuFilePath, JSON.stringify(menu, null, 2));
-}
+import { getMenu, setMenu } from "@/lib/db/kv";
 
 // PATCH - Update menu item
 export async function PATCH(
@@ -37,17 +10,10 @@ export async function PATCH(
   try {
     const { restaurantId, itemId } = await params; // ✅ AWAIT params
     const body = await request.json();
-    const menu = await readMenu();
+    const menu = await getMenu(restaurantId);
 
-    if (!menu[restaurantId]) {
-      return NextResponse.json(
-        { error: "Restaurant not found" },
-        { status: 404 }
-      );
-    }
-
-    const itemIndex = menu[restaurantId].findIndex(
-      (item: any) => item.id === parseInt(itemId)
+    const itemIndex = menu.findIndex(
+      (item: any) => String(item.id) === itemId || item.id === Number(itemId)
     );
 
     if (itemIndex === -1) {
@@ -57,17 +23,17 @@ export async function PATCH(
       );
     }
 
-    menu[restaurantId][itemIndex] = {
-      ...menu[restaurantId][itemIndex],
+    menu[itemIndex] = {
+      ...menu[itemIndex],
       ...body,
       updatedAt: new Date().toISOString(),
     };
 
-    await writeMenu(menu);
+    await setMenu(restaurantId, menu);
 
     return NextResponse.json({
       success: true,
-      item: menu[restaurantId][itemIndex],
+      item: menu[itemIndex],
     });
   } catch (error) {
     console.error("Failed to update menu item:", error);
@@ -85,28 +51,20 @@ export async function DELETE(
 ) {
   try {
     const { restaurantId, itemId } = await params; // ✅ AWAIT params
-    const menu = await readMenu();
+    const menu = await getMenu(restaurantId);
 
-    if (!menu[restaurantId]) {
-      return NextResponse.json(
-        { error: "Restaurant not found" },
-        { status: 404 }
-      );
-    }
-
-    const initialLength = menu[restaurantId].length;
-    menu[restaurantId] = menu[restaurantId].filter(
-      (item: any) => item.id !== parseInt(itemId)
+    const filteredMenu = menu.filter(
+      (item: any) => String(item.id) !== itemId && item.id !== Number(itemId)
     );
 
-    if (menu[restaurantId].length === initialLength) {
+    if (filteredMenu.length === menu.length) {
       return NextResponse.json(
         { error: "Menu item not found" },
         { status: 404 }
       );
     }
 
-    await writeMenu(menu);
+    await setMenu(restaurantId, filteredMenu);
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -1,12 +1,9 @@
 import { NextResponse } from "next/server";
-import {
-  getTaskStatuses,
-  toggleTaskStatus,
-} from "@/lib/db/roadmapStatusStore";
+import { getRoadmapStatus, toggleRoadmapTask } from "@/lib/db/kv";
 
 export async function GET() {
   try {
-    const statuses = await getTaskStatuses();
+    const statuses = await getRoadmapStatus();
     return NextResponse.json({ statuses });
   } catch (error) {
     console.error("Failed to load roadmap task statuses:", error);
@@ -34,7 +31,7 @@ export async function POST(request: Request) {
     }
 
     const key = `${phaseId}-${taskIdx}-${itemIdx}`;
-    const result = await toggleTaskStatus(key);
+    const result = await toggleRoadmapTask(key);
 
     return NextResponse.json({ key, status: result.status });
   } catch (error) {
