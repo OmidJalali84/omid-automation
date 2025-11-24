@@ -1,4 +1,6 @@
-import { kv } from "@vercel/kv";
+import { createClient } from "redis";
+
+const redis = await createClient({ url: process.env.REDIS_URL }).connect();
 
 // Keys for different data types
 const KEYS = {
@@ -13,8 +15,9 @@ const KEYS = {
 // Menu Operations
 export async function getMenu(restaurantId: string): Promise<any[]> {
   try {
-    const menu = await kv.get<any[]>(KEYS.MENU(restaurantId));
-    return menu || [];
+    const menuStr = await redis.get(KEYS.MENU(restaurantId));
+    if (!menuStr) return [];
+    return JSON.parse(menuStr);
   } catch (error) {
     console.error("Failed to get menu:", error);
     return [];
@@ -23,7 +26,7 @@ export async function getMenu(restaurantId: string): Promise<any[]> {
 
 export async function setMenu(restaurantId: string, items: any[]) {
   try {
-    await kv.set(KEYS.MENU(restaurantId), items);
+    await redis.set(KEYS.MENU(restaurantId), JSON.stringify(items));
     return true;
   } catch (error) {
     console.error("Failed to set menu:", error);
@@ -75,8 +78,9 @@ export async function deleteMenuItem(restaurantId: string, itemId: number) {
 // Orders Operations
 export async function getOrders(): Promise<any[]> {
   try {
-    const orders = await kv.get<any[]>(KEYS.ORDERS);
-    return orders || [];
+    const ordersStr = await redis.get(KEYS.ORDERS);
+    if (!ordersStr) return [];
+    return JSON.parse(ordersStr);
   } catch (error) {
     console.error("Failed to get orders:", error);
     return [];
@@ -85,7 +89,7 @@ export async function getOrders(): Promise<any[]> {
 
 export async function setOrders(orders: any[]) {
   try {
-    await kv.set(KEYS.ORDERS, orders);
+    await redis.set(KEYS.ORDERS, JSON.stringify(orders));
     return true;
   } catch (error) {
     console.error("Failed to set orders:", error);
@@ -135,8 +139,9 @@ export async function deleteOrder(orderId: string) {
 // Admins Operations
 export async function getAdmins(): Promise<any[]> {
   try {
-    const admins = await kv.get<any[]>(KEYS.ADMINS);
-    return admins || [];
+    const adminsStr = await redis.get(KEYS.ADMINS);
+    if (!adminsStr) return [];
+    return JSON.parse(adminsStr);
   } catch (error) {
     console.error("Failed to get admins:", error);
     return [];
@@ -153,8 +158,9 @@ export async function findAdminByUsername(
 // Restaurants Operations
 export async function getRestaurants(): Promise<Record<string, any>> {
   try {
-    const restaurants = await kv.get<Record<string, any>>(KEYS.RESTAURANTS);
-    return restaurants || {};
+    const restaurantsStr = await redis.get(KEYS.RESTAURANTS);
+    if (!restaurantsStr) return {};
+    return JSON.parse(restaurantsStr);
   } catch (error) {
     console.error("Failed to get restaurants:", error);
     return {};
@@ -171,8 +177,9 @@ export async function getRestaurant(
 // Print Queue Operations
 export async function getPrintQueue(): Promise<any[]> {
   try {
-    const queue = await kv.get<any[]>(KEYS.PRINT_QUEUE);
-    return queue || [];
+    const queueStr = await redis.get(KEYS.PRINT_QUEUE);
+    if (!queueStr) return [];
+    return JSON.parse(queueStr);
   } catch (error) {
     console.error("Failed to get print queue:", error);
     return [];
@@ -181,7 +188,7 @@ export async function getPrintQueue(): Promise<any[]> {
 
 export async function setPrintQueue(queue: any[]) {
   try {
-    await kv.set(KEYS.PRINT_QUEUE, queue);
+    await redis.set(KEYS.PRINT_QUEUE, JSON.stringify(queue));
     return true;
   } catch (error) {
     console.error("Failed to set print queue:", error);
@@ -222,8 +229,9 @@ export async function removeFromPrintQueue(orderId: string) {
 // Roadmap Status Operations
 export async function getRoadmapStatus(): Promise<Record<string, boolean>> {
   try {
-    const status = await kv.get<Record<string, boolean>>(KEYS.ROADMAP_STATUS);
-    return status || {};
+    const statusStr = await redis.get(KEYS.ROADMAP_STATUS);
+    if (!statusStr) return {};
+    return JSON.parse(statusStr);
   } catch (error) {
     console.error("Failed to get roadmap status:", error);
     return {};
@@ -235,7 +243,7 @@ export async function toggleRoadmapTask(key: string) {
   const currentStatus = statuses[key];
   const nextStatus = currentStatus === undefined ? false : !currentStatus;
   statuses[key] = nextStatus;
-  await kv.set(KEYS.ROADMAP_STATUS, statuses);
+  await redis.set(KEYS.ROADMAP_STATUS, JSON.stringify(statuses));
   return { status: nextStatus };
 }
 
@@ -266,7 +274,7 @@ export async function initializeData() {
       },
     };
 
-    await kv.set(KEYS.RESTAURANTS, restaurants);
+    await redis.set(KEYS.RESTAURANTS, JSON.stringify(restaurants));
 
     // Initialize admins
     const admins = [
@@ -280,18 +288,18 @@ export async function initializeData() {
       },
     ];
 
-    await kv.set(KEYS.ADMINS, admins);
+    await redis.set(KEYS.ADMINS, JSON.stringify(admins));
 
     // Initialize empty orders and print queue
-    await kv.set(KEYS.ORDERS, []);
-    await kv.set(KEYS.PRINT_QUEUE, []);
-    await kv.set(KEYS.ROADMAP_STATUS, {});
+    await redis.set(KEYS.ORDERS, JSON.stringify([]));
+    await redis.set(KEYS.PRINT_QUEUE, JSON.stringify([]));
+    await redis.set(KEYS.ROADMAP_STATUS, JSON.stringify({}));
 
     // Initialize empty menus for each restaurant
-    await kv.set(KEYS.MENU("amiralmomenin"), []);
-    await kv.set(KEYS.MENU("kaktus"), []);
-    await kv.set(KEYS.MENU("zitoun"), []);
-    await kv.set(KEYS.MENU("toranj"), []);
+    await redis.set(KEYS.MENU("amiralmomenin"), JSON.stringify([]));
+    await redis.set(KEYS.MENU("kaktus"), JSON.stringify([]));
+    await redis.set(KEYS.MENU("zitoun"), JSON.stringify([]));
+    await redis.set(KEYS.MENU("toranj"), JSON.stringify([]));
 
     console.log("✅ Data initialized successfully");
     return true;
