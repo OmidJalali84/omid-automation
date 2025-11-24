@@ -1,6 +1,4 @@
 import { kv } from "@vercel/kv";
-import { promises as fs } from "fs";
-import path from "path";
 
 // Keys for different data types
 const KEYS = {
@@ -12,102 +10,10 @@ const KEYS = {
   ROADMAP_STATUS: "roadmap-status",
 };
 
-const DEFAULT_RESTAURANTS: Record<string, any> = {
-  amiralmomenin: {
-    id: "amiralmomenin",
-    name: "امیرالمومنین",
-    description: "سلف سرویس اصلی دانشگاه با ظرفیت بالا و سرویس‌دهی سریع",
-  },
-  kaktus: {
-    id: "kaktus",
-    name: "کاکتوس",
-    description: "فست‌فود دانشجویی با سرو سریع و تنوع بالا",
-  },
-  zitoun: {
-    id: "zitoun",
-    name: "زیتون",
-    description: "غذاهای ایرانی خانگی با کیفیت ثابت",
-  },
-  toranj: {
-    id: "toranj",
-    name: "ترنج",
-    description: "سلامت‌محور با سالادها و نوشیدنی‌های تازه",
-  },
-};
-
-const LOCAL_KV_DIR = path.join(process.cwd(), "data");
-const LOCAL_KV_FILE = path.join(LOCAL_KV_DIR, "kv-store.json");
-const hasRemoteKV =
-  Boolean(process.env.KV_REST_API_URL) &&
-  Boolean(process.env.KV_REST_API_TOKEN);
-const runningOnVercel = Boolean(process.env.VERCEL);
-const canUseLocalKV = !hasRemoteKV && !runningOnVercel;
-
-async function ensureLocalStore() {
-  await fs.mkdir(LOCAL_KV_DIR, { recursive: true });
-}
-
-async function readLocalStore(): Promise<Record<string, any>> {
-  if (!canUseLocalKV) {
-    throw new Error(
-      "Local KV fallback is disabled in this environment. Please configure Vercel KV."
-    );
-  }
-  try {
-    await ensureLocalStore();
-    const content = await fs.readFile(LOCAL_KV_FILE, "utf-8");
-    return JSON.parse(content);
-  } catch {
-    return {};
-  }
-}
-
-async function writeLocalStore(data: Record<string, any>) {
-  if (!canUseLocalKV) {
-    throw new Error(
-      "Local KV fallback is disabled in this environment. Please configure Vercel KV."
-    );
-  }
-  await ensureLocalStore();
-  await fs.writeFile(LOCAL_KV_FILE, JSON.stringify(data, null, 2));
-}
-
-async function storageGet<T>(key: string): Promise<T | null> {
-  if (hasRemoteKV) {
-    return (await kv.get<T>(key)) ?? null;
-  }
-
-  if (!canUseLocalKV) {
-    throw new Error(
-      "Vercel KV environment variables are missing and local fallback is disabled in this runtime."
-    );
-  }
-
-  const store = await readLocalStore();
-  return (store[key] ?? null) as T | null;
-}
-
-async function storageSet<T>(key: string, value: T): Promise<void> {
-  if (hasRemoteKV) {
-    await kv.set(key, value);
-    return;
-  }
-
-  if (!canUseLocalKV) {
-    throw new Error(
-      "Vercel KV environment variables are missing and local fallback is disabled in this runtime."
-    );
-  }
-
-  const store = await readLocalStore();
-  store[key] = value;
-  await writeLocalStore(store);
-}
-
 // Menu Operations
-export async function getMenu(restaurantId: string): Promise<any[]> {
+export async function getMenu(restaurantId: string) {
   try {
-    const menu = await storageGet<any[]>(KEYS.MENU(restaurantId));
+    const menu = await kv.get(KEYS.MENU(restaurantId));
     return menu || [];
   } catch (error) {
     console.error("Failed to get menu:", error);
@@ -115,12 +21,9 @@ export async function getMenu(restaurantId: string): Promise<any[]> {
   }
 }
 
-export async function setMenu(
-  restaurantId: string,
-  items: any[]
-): Promise<boolean> {
+export async function setMenu(restaurantId: string, items: any[]) {
   try {
-    await storageSet(KEYS.MENU(restaurantId), items);
+    await kv.set(KEYS.MENU(restaurantId), items);
     return true;
   } catch (error) {
     console.error("Failed to set menu:", error);
@@ -170,9 +73,9 @@ export async function deleteMenuItem(restaurantId: string, itemId: number) {
 }
 
 // Orders Operations
-export async function getOrders(): Promise<any[]> {
+export async function getOrders() {
   try {
-    const orders = await storageGet<any[]>(KEYS.ORDERS);
+    const orders = await kv.get(KEYS.ORDERS);
     return orders || [];
   } catch (error) {
     console.error("Failed to get orders:", error);
@@ -180,9 +83,9 @@ export async function getOrders(): Promise<any[]> {
   }
 }
 
-export async function setOrders(orders: any[]): Promise<boolean> {
+export async function setOrders(orders: any[]) {
   try {
-    await storageSet(KEYS.ORDERS, orders);
+    await kv.set(KEYS.ORDERS, orders);
     return true;
   } catch (error) {
     console.error("Failed to set orders:", error);
@@ -190,14 +93,14 @@ export async function setOrders(orders: any[]): Promise<boolean> {
   }
 }
 
-export async function addOrder(order: any): Promise<any> {
+export async function addOrder(order: any) {
   const orders = await getOrders();
   orders.unshift(order);
   await setOrders(orders);
   return order;
 }
 
-export async function updateOrder(orderId: string, updates: any): Promise<any> {
+export async function updateOrder(orderId: string, updates: any) {
   const orders = await getOrders();
   const orderIndex = orders.findIndex((o: any) => o.id === orderId);
 
@@ -215,7 +118,7 @@ export async function updateOrder(orderId: string, updates: any): Promise<any> {
   return orders[orderIndex];
 }
 
-export async function deleteOrder(orderId: string): Promise<any> {
+export async function deleteOrder(orderId: string) {
   const orders = await getOrders();
   const orderIndex = orders.findIndex((o: any) => o.id === orderId);
 
@@ -230,9 +133,9 @@ export async function deleteOrder(orderId: string): Promise<any> {
 }
 
 // Admins Operations
-export async function getAdmins(): Promise<any[]> {
+export async function getAdmins() {
   try {
-    const admins = await storageGet<any[]>(KEYS.ADMINS);
+    const admins = await kv.get(KEYS.ADMINS);
     return admins || [];
   } catch (error) {
     console.error("Failed to get admins:", error);
@@ -240,37 +143,31 @@ export async function getAdmins(): Promise<any[]> {
   }
 }
 
-export async function findAdminByUsername(
-  username: string
-): Promise<any | undefined> {
+export async function findAdminByUsername(username: string) {
   const admins = await getAdmins();
   return admins.find((a: any) => a.username === username);
 }
 
 // Restaurants Operations
-export async function getRestaurants(): Promise<Record<string, any>> {
+export async function getRestaurants() {
   try {
-    let restaurants = await storageGet<Record<string, any>>(KEYS.RESTAURANTS);
-    if (!restaurants || Object.keys(restaurants).length === 0) {
-      restaurants = { ...DEFAULT_RESTAURANTS };
-      await storageSet(KEYS.RESTAURANTS, restaurants);
-    }
-    return restaurants;
+    const restaurants = await kv.get(KEYS.RESTAURANTS);
+    return restaurants || {};
   } catch (error) {
     console.error("Failed to get restaurants:", error);
-    return { ...DEFAULT_RESTAURANTS };
+    return {};
   }
 }
 
-export async function getRestaurant(restaurantId: string): Promise<any> {
+export async function getRestaurant(restaurantId: string) {
   const restaurants = await getRestaurants();
   return restaurants[restaurantId];
 }
 
 // Print Queue Operations
-export async function getPrintQueue(): Promise<any[]> {
+export async function getPrintQueue() {
   try {
-    const queue = await storageGet<any[]>(KEYS.PRINT_QUEUE);
+    const queue = await kv.get(KEYS.PRINT_QUEUE);
     return queue || [];
   } catch (error) {
     console.error("Failed to get print queue:", error);
@@ -278,9 +175,9 @@ export async function getPrintQueue(): Promise<any[]> {
   }
 }
 
-export async function setPrintQueue(queue: any[]): Promise<boolean> {
+export async function setPrintQueue(queue: any[]) {
   try {
-    await storageSet(KEYS.PRINT_QUEUE, queue);
+    await kv.set(KEYS.PRINT_QUEUE, queue);
     return true;
   } catch (error) {
     console.error("Failed to set print queue:", error);
@@ -288,7 +185,7 @@ export async function setPrintQueue(queue: any[]): Promise<boolean> {
   }
 }
 
-export async function addToPrintQueue(order: any): Promise<boolean> {
+export async function addToPrintQueue(order: any) {
   const queue = await getPrintQueue();
 
   const exists = queue.some((item: any) => item.id === order.id);
@@ -306,7 +203,7 @@ export async function addToPrintQueue(order: any): Promise<boolean> {
   return true;
 }
 
-export async function removeFromPrintQueue(orderId: string): Promise<boolean> {
+export async function removeFromPrintQueue(orderId: string) {
   const queue = await getPrintQueue();
   const filteredQueue = queue.filter((item: any) => item.id !== orderId);
 
@@ -319,9 +216,9 @@ export async function removeFromPrintQueue(orderId: string): Promise<boolean> {
 }
 
 // Roadmap Status Operations
-export async function getRoadmapStatus(): Promise<Record<string, any>> {
+export async function getRoadmapStatus() {
   try {
-    const status = await storageGet<Record<string, any>>(KEYS.ROADMAP_STATUS);
+    const status = await kv.get(KEYS.ROADMAP_STATUS);
     return status || {};
   } catch (error) {
     console.error("Failed to get roadmap status:", error);
@@ -329,14 +226,12 @@ export async function getRoadmapStatus(): Promise<Record<string, any>> {
   }
 }
 
-export async function toggleRoadmapTask(
-  key: string
-): Promise<{ status: boolean }> {
+export async function toggleRoadmapTask(key: string) {
   const statuses = await getRoadmapStatus();
   const currentStatus = statuses[key];
   const nextStatus = currentStatus === undefined ? false : !currentStatus;
   statuses[key] = nextStatus;
-  await storageSet(KEYS.ROADMAP_STATUS, statuses);
+  await kv.set(KEYS.ROADMAP_STATUS, statuses);
   return { status: nextStatus };
 }
 
@@ -367,7 +262,7 @@ export async function initializeData() {
       },
     };
 
-    await storageSet(KEYS.RESTAURANTS, restaurants);
+    await kv.set(KEYS.RESTAURANTS, restaurants);
 
     // Initialize admins
     const admins = [
@@ -381,18 +276,18 @@ export async function initializeData() {
       },
     ];
 
-    await storageSet(KEYS.ADMINS, admins);
+    await kv.set(KEYS.ADMINS, admins);
 
     // Initialize empty orders and print queue
-    await storageSet(KEYS.ORDERS, []);
-    await storageSet(KEYS.PRINT_QUEUE, []);
-    await storageSet(KEYS.ROADMAP_STATUS, {});
+    await kv.set(KEYS.ORDERS, []);
+    await kv.set(KEYS.PRINT_QUEUE, []);
+    await kv.set(KEYS.ROADMAP_STATUS, {});
 
     // Initialize empty menus for each restaurant
-    await storageSet(KEYS.MENU("amiralmomenin"), []);
-    await storageSet(KEYS.MENU("kaktus"), []);
-    await storageSet(KEYS.MENU("zitoun"), []);
-    await storageSet(KEYS.MENU("toranj"), []);
+    await kv.set(KEYS.MENU("amiralmomenin"), []);
+    await kv.set(KEYS.MENU("kaktus"), []);
+    await kv.set(KEYS.MENU("zitoun"), []);
+    await kv.set(KEYS.MENU("toranj"), []);
 
     console.log("✅ Data initialized successfully");
     return true;

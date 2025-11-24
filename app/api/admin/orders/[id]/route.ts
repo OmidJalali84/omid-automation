@@ -1,17 +1,30 @@
 // app/api/admin/orders/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import { promises as fs } from "fs";
+import path from "path";
 import { verifyAuth } from "@/lib/middleware/auth";
-import {
-  updateOrder as updateOrderKV,
-  deleteOrder as deleteOrderKV,
-  getOrders as getOrdersKV,
-} from "@/lib/db/kv";
+
+const ordersFilePath = path.join(process.cwd(), "data", "orders.json");
+
+async function readOrders() {
+  try {
+    const data = await fs.readFile(ordersFilePath, "utf-8");
+    return JSON.parse(data);
+  } catch {
+    return [];
+  }
+}
+
+async function writeOrders(orders: any[]) {
+  await fs.writeFile(ordersFilePath, JSON.stringify(orders, null, 2));
+}
 
 interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
 export async function PATCH(request: NextRequest, context: RouteContext) {
+  // Verify authentication
   const auth = await verifyAuth(request);
   if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -20,22 +33,25 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
     const { status } = await request.json();
+    const orders = await readOrders();
 
-    const orders = await getOrdersKV();
-    const order = orders.find((o: any) => o.id === id);
+    const orderIndex = orders.findIndex((o: any) => o.id === id);
 
-    if (!order) {
+    if (orderIndex === -1) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
     // Verify restaurant access
-    if (order.restaurantId !== auth.restaurantId) {
+    if (orders[orderIndex].restaurantId !== auth.restaurantId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const updatedOrder = await updateOrderKV(id, { status });
+    orders[orderIndex].status = status;
+    orders[orderIndex].updatedAt = new Date().toISOString();
 
-    return NextResponse.json({ success: true, order: updatedOrder });
+    await writeOrders(orders);
+
+    return NextResponse.json({ success: true, order: orders[orderIndex] });
   } catch (error) {
     return NextResponse.json(
       { error: "Failed to update order" },
@@ -45,6 +61,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 }
 
 export async function DELETE(request: NextRequest, context: RouteContext) {
+  // Verify authentication
   const auth = await verifyAuth(request);
   if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -52,7 +69,14 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
 
   try {
     const { id } = await context.params;
-    await deleteOrderKV(id);
+    const orders = await readOrders();
+    const filteredOrders = orders.filter((o: any) => o.id !== id);
+
+    if (orders.length === filteredOrders.length) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+
+    await writeOrders(filteredOrders);
 
     return NextResponse.json({ success: true });
   } catch (error) {

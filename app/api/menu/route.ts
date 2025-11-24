@@ -1,26 +1,40 @@
 // app/api/menu/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { getMenu, setMenu, getRestaurants } from "@/lib/db/kv";
+import { promises as fs } from "fs";
+import path from "path";
 
-// GET - Fetch all menu items grouped by restaurant
+const menuFilePath = path.join(process.cwd(), "data", "menu.json");
+
+async function ensureDataDir() {
+  const dataDir = path.join(process.cwd(), "data");
+  try {
+    await fs.access(dataDir);
+  } catch {
+    await fs.mkdir(dataDir, { recursive: true });
+  }
+}
+
+async function readMenu() {
+  try {
+    await ensureDataDir();
+    const data = await fs.readFile(menuFilePath, "utf-8");
+    return JSON.parse(data);
+  } catch {
+    return {};
+  }
+}
+
+async function writeMenu(menu: any) {
+  await ensureDataDir();
+  await fs.writeFile(menuFilePath, JSON.stringify(menu, null, 2));
+}
+
+// GET - Fetch all menu items
 export async function GET() {
   try {
-    const restaurants = await getRestaurants();
-    const entries = await Promise.all(
-      Object.keys(restaurants).map(async (restaurantId) => {
-        const items = await getMenu(restaurantId);
-        return [restaurantId, items] as const;
-      })
-    );
-
-    const menu = entries.reduce<Record<string, any[]>>((acc, [id, items]) => {
-      acc[id] = items;
-      return acc;
-    }, {});
-
+    const menu = await readMenu();
     return NextResponse.json(menu);
   } catch (error) {
-    console.error("Failed to fetch menu:", error);
     return NextResponse.json(
       { error: "Failed to fetch menu" },
       { status: 500 }
@@ -34,14 +48,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { restaurantId, name, price, category, image, quantity } = body;
 
-    if (!restaurantId) {
-      return NextResponse.json(
-        { error: "Restaurant ID is required" },
-        { status: 400 }
-      );
+    const menu = await readMenu();
+    if (!menu[restaurantId]) {
+      menu[restaurantId] = [];
     }
-
-    const restaurantMenu = await getMenu(restaurantId);
 
     const newItem = {
       id: Date.now(),
@@ -54,12 +64,11 @@ export async function POST(request: NextRequest) {
       createdAt: new Date().toISOString(),
     };
 
-    restaurantMenu.push(newItem);
-    await setMenu(restaurantId, restaurantMenu);
+    menu[restaurantId].push(newItem);
+    await writeMenu(menu);
 
     return NextResponse.json({ success: true, item: newItem }, { status: 201 });
   } catch (error) {
-    console.error("Failed to create menu item:", error);
     return NextResponse.json(
       { error: "Failed to create menu item" },
       { status: 500 }
