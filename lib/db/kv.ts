@@ -11,9 +11,9 @@ const KEYS = {
 };
 
 // Menu Operations
-export async function getMenu(restaurantId: string) {
+export async function getMenu(restaurantId: string): Promise<any[]> {
   try {
-    const menu = await kv.get(KEYS.MENU(restaurantId));
+    const menu = await kv.get<any[]>(KEYS.MENU(restaurantId));
     return menu || [];
   } catch (error) {
     console.error("Failed to get menu:", error);
@@ -73,9 +73,9 @@ export async function deleteMenuItem(restaurantId: string, itemId: number) {
 }
 
 // Orders Operations
-export async function getOrders() {
+export async function getOrders(): Promise<any[]> {
   try {
-    const orders = await kv.get(KEYS.ORDERS);
+    const orders = await kv.get<any[]>(KEYS.ORDERS);
     return orders || [];
   } catch (error) {
     console.error("Failed to get orders:", error);
@@ -133,9 +133,9 @@ export async function deleteOrder(orderId: string) {
 }
 
 // Admins Operations
-export async function getAdmins() {
+export async function getAdmins(): Promise<any[]> {
   try {
-    const admins = await kv.get(KEYS.ADMINS);
+    const admins = await kv.get<any[]>(KEYS.ADMINS);
     return admins || [];
   } catch (error) {
     console.error("Failed to get admins:", error);
@@ -143,15 +143,17 @@ export async function getAdmins() {
   }
 }
 
-export async function findAdminByUsername(username: string) {
+export async function findAdminByUsername(
+  username: string
+): Promise<any | undefined> {
   const admins = await getAdmins();
   return admins.find((a: any) => a.username === username);
 }
 
 // Restaurants Operations
-export async function getRestaurants() {
+export async function getRestaurants(): Promise<Record<string, any>> {
   try {
-    const restaurants = await kv.get(KEYS.RESTAURANTS);
+    const restaurants = await kv.get<Record<string, any>>(KEYS.RESTAURANTS);
     return restaurants || {};
   } catch (error) {
     console.error("Failed to get restaurants:", error);
@@ -159,15 +161,17 @@ export async function getRestaurants() {
   }
 }
 
-export async function getRestaurant(restaurantId: string) {
+export async function getRestaurant(
+  restaurantId: string
+): Promise<any | undefined> {
   const restaurants = await getRestaurants();
   return restaurants[restaurantId];
 }
 
 // Print Queue Operations
-export async function getPrintQueue() {
+export async function getPrintQueue(): Promise<any[]> {
   try {
-    const queue = await kv.get(KEYS.PRINT_QUEUE);
+    const queue = await kv.get<any[]>(KEYS.PRINT_QUEUE);
     return queue || [];
   } catch (error) {
     console.error("Failed to get print queue:", error);
@@ -216,9 +220,9 @@ export async function removeFromPrintQueue(orderId: string) {
 }
 
 // Roadmap Status Operations
-export async function getRoadmapStatus() {
+export async function getRoadmapStatus(): Promise<Record<string, boolean>> {
   try {
-    const status = await kv.get(KEYS.ROADMAP_STATUS);
+    const status = await kv.get<Record<string, boolean>>(KEYS.ROADMAP_STATUS);
     return status || {};
   } catch (error) {
     console.error("Failed to get roadmap status:", error);

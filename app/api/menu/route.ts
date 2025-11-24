@@ -1,39 +1,19 @@
 // app/api/menu/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { promises as fs } from "fs";
-import path from "path";
+import { getMenu, setMenu } from "@/lib/db/kv";
 
-const menuFilePath = path.join(process.cwd(), "data", "menu.json");
-
-async function ensureDataDir() {
-  const dataDir = path.join(process.cwd(), "data");
-  try {
-    await fs.access(dataDir);
-  } catch {
-    await fs.mkdir(dataDir, { recursive: true });
-  }
-}
-
-async function readMenu() {
-  try {
-    await ensureDataDir();
-    const data = await fs.readFile(menuFilePath, "utf-8");
-    return JSON.parse(data);
-  } catch {
-    return {};
-  }
-}
-
-async function writeMenu(menu: any) {
-  await ensureDataDir();
-  await fs.writeFile(menuFilePath, JSON.stringify(menu, null, 2));
-}
-
-// GET - Fetch all menu items
 export async function GET() {
   try {
-    const menu = await readMenu();
-    return NextResponse.json(menu);
+    // Return all menus for all restaurants
+    const restaurants = ["amiralmomenin", "kaktus", "zitoun", "toranj"];
+    const allMenus: Record<string, any[]> = {};
+
+    for (const restaurantId of restaurants) {
+      const menu: any[] = await getMenu(restaurantId);
+      allMenus[restaurantId] = menu;
+    }
+
+    return NextResponse.json(allMenus);
   } catch (error) {
     return NextResponse.json(
       { error: "Failed to fetch menu" },
@@ -42,16 +22,12 @@ export async function GET() {
   }
 }
 
-// POST - Add new menu item
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { restaurantId, name, price, category, image, quantity } = body;
 
-    const menu = await readMenu();
-    if (!menu[restaurantId]) {
-      menu[restaurantId] = [];
-    }
+    const menu: any[] = await getMenu(restaurantId);
 
     const newItem = {
       id: Date.now(),
@@ -64,8 +40,8 @@ export async function POST(request: NextRequest) {
       createdAt: new Date().toISOString(),
     };
 
-    menu[restaurantId].push(newItem);
-    await writeMenu(menu);
+    menu.push(newItem);
+    await setMenu(restaurantId, menu);
 
     return NextResponse.json({ success: true, item: newItem }, { status: 201 });
   } catch (error) {

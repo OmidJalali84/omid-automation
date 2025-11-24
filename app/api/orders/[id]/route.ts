@@ -1,69 +1,33 @@
-// app/api/orders/[id]/route.ts - Updated with inventory restoration
+// app/api/orders/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { promises as fs } from "fs";
-import path from "path";
+import {
+  updateOrder,
+  deleteOrder,
+  getMenu,
+  setMenu,
+  getOrders,
+} from "@/lib/db/kv";
 
-const ordersFilePath = path.join(process.cwd(), "data", "orders.json");
-const menuFilePath = path.join(process.cwd(), "data", "menu.json");
-
-async function ensureDataDir() {
-  const dataDir = path.join(process.cwd(), "data");
-  try {
-    await fs.access(dataDir);
-  } catch {
-    await fs.mkdir(dataDir, { recursive: true });
-  }
-}
-
-async function readOrders() {
-  try {
-    const data = await fs.readFile(ordersFilePath, "utf-8");
-    return JSON.parse(data);
-  } catch {
-    return [];
-  }
-}
-
-async function writeOrders(orders: any[]) {
-  await fs.writeFile(ordersFilePath, JSON.stringify(orders, null, 2));
-}
-
-async function readMenu() {
-  try {
-    const data = await fs.readFile(menuFilePath, "utf-8");
-    return JSON.parse(data);
-  } catch {
-    return {};
-  }
-}
-
-async function writeMenu(menu: any) {
-  await fs.writeFile(menuFilePath, JSON.stringify(menu, null, 2));
-}
-
-// PATCH - Update order status
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params; // Await params
+    const { id } = await params;
     const { status } = await request.json();
-    const orders = await readOrders();
-    const menu = await readMenu();
 
-    const orderIndex = orders.findIndex((o: any) => o.id === id);
+    const orders: any[] = await getOrders();
+    const order = orders.find((o: any) => o.id === id);
 
-    if (orderIndex === -1) {
+    if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    const order = orders[orderIndex];
     const oldStatus = order.status;
 
     // If cancelling an order, restore inventory
     if (oldStatus !== "cancelled" && status === "cancelled") {
-      const restaurantMenu = menu[order.restaurantId] || [];
+      const restaurantMenu: any[] = await getMenu(order.restaurantId);
 
       for (const item of order.items) {
         const menuItemIndex = restaurantMenu.findIndex(
@@ -79,18 +43,19 @@ export async function PATCH(
         }
       }
 
-      menu[order.restaurantId] = restaurantMenu;
-      await writeMenu(menu);
+      await setMenu(order.restaurantId, restaurantMenu);
     }
 
-    // Update order status
-    orders[orderIndex].status = status;
-    orders[orderIndex].updatedAt = new Date().toISOString();
+    const updatedOrder: any = await updateOrder(id, { status });
 
-    await writeOrders(orders);
+    return NextResponse.json({ success: true, order: updatedOrder });
+  } catch (error: any) {
+    console.error("Failed to update order:", error);
 
-    return NextResponse.json({ success: true, order: orders[orderIndex] });
-  } catch (error) {
+    if (error.message === "Order not found") {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+
     return NextResponse.json(
       { error: "Failed to update order" },
       { status: 500 }
@@ -98,26 +63,16 @@ export async function PATCH(
   }
 }
 
-// DELETE - Delete order and restore inventory
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params; // Await params
-    const orders = await readOrders();
-    const menu = await readMenu();
-
-    const orderIndex = orders.findIndex((o: any) => o.id === id);
-
-    if (orderIndex === -1) {
-      return NextResponse.json({ error: "Order not found" }, { status: 404 });
-    }
-
-    const order = orders[orderIndex];
+    const { id } = await params;
+    const order: any = await deleteOrder(id);
 
     // Restore inventory when deleting order
-    const restaurantMenu = menu[order.restaurantId] || [];
+    const restaurantMenu: any[] = await getMenu(order.restaurantId);
 
     for (const item of order.items) {
       const menuItemIndex = restaurantMenu.findIndex(
@@ -129,15 +84,16 @@ export async function DELETE(
       }
     }
 
-    menu[order.restaurantId] = restaurantMenu;
-    await writeMenu(menu);
-
-    // Remove order
-    orders.splice(orderIndex, 1);
-    await writeOrders(orders);
+    await setMenu(order.restaurantId, restaurantMenu);
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
+    console.error("Failed to delete order:", error);
+
+    if (error.message === "Order not found") {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+
     return NextResponse.json(
       { error: "Failed to delete order" },
       { status: 500 }

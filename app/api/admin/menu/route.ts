@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const menu = await getMenu(restaurantId!);
+    const menu: any[] = await getMenu(restaurantId!);
     return NextResponse.json(menu);
   } catch (error) {
     console.error("Failed to fetch menu:", error);

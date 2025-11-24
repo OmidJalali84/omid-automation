@@ -17,7 +17,11 @@ export async function PATCH(
     const body = await request.json();
     const itemId = parseInt(id);
 
-    const updatedItem = await updateMenuItem(auth.restaurantId, itemId, body);
+    const updatedItem: any = await updateMenuItem(
+      auth.restaurantId,
+      itemId,
+      body
+    );
 
     return NextResponse.json({
       success: true,
