@@ -40,12 +40,19 @@ const LOCAL_KV_FILE = path.join(LOCAL_KV_DIR, "kv-store.json");
 const hasRemoteKV =
   Boolean(process.env.KV_REST_API_URL) &&
   Boolean(process.env.KV_REST_API_TOKEN);
+const runningOnVercel = Boolean(process.env.VERCEL);
+const canUseLocalKV = !hasRemoteKV && !runningOnVercel;
 
 async function ensureLocalStore() {
   await fs.mkdir(LOCAL_KV_DIR, { recursive: true });
 }
 
 async function readLocalStore(): Promise<Record<string, any>> {
+  if (!canUseLocalKV) {
+    throw new Error(
+      "Local KV fallback is disabled in this environment. Please configure Vercel KV."
+    );
+  }
   try {
     await ensureLocalStore();
     const content = await fs.readFile(LOCAL_KV_FILE, "utf-8");
@@ -56,6 +63,11 @@ async function readLocalStore(): Promise<Record<string, any>> {
 }
 
 async function writeLocalStore(data: Record<string, any>) {
+  if (!canUseLocalKV) {
+    throw new Error(
+      "Local KV fallback is disabled in this environment. Please configure Vercel KV."
+    );
+  }
   await ensureLocalStore();
   await fs.writeFile(LOCAL_KV_FILE, JSON.stringify(data, null, 2));
 }
@@ -63,6 +75,12 @@ async function writeLocalStore(data: Record<string, any>) {
 async function storageGet<T>(key: string): Promise<T | null> {
   if (hasRemoteKV) {
     return (await kv.get<T>(key)) ?? null;
+  }
+
+  if (!canUseLocalKV) {
+    throw new Error(
+      "Vercel KV environment variables are missing and local fallback is disabled in this runtime."
+    );
   }
 
   const store = await readLocalStore();
@@ -73,6 +91,12 @@ async function storageSet<T>(key: string, value: T): Promise<void> {
   if (hasRemoteKV) {
     await kv.set(key, value);
     return;
+  }
+
+  if (!canUseLocalKV) {
+    throw new Error(
+      "Vercel KV environment variables are missing and local fallback is disabled in this runtime."
+    );
   }
 
   const store = await readLocalStore();
