@@ -10,6 +10,7 @@ const KEYS = {
   RESTAURANTS: "restaurants",
   PRINT_QUEUE: "print-queue",
   ROADMAP_STATUS: "roadmap-status",
+  ORDER_COUNTER: "order-counter", // Stores { date: string, counter: number }
 };
 
 // Menu Operations
@@ -305,6 +306,62 @@ export async function initializeData() {
     return true;
   } catch (error) {
     console.error("Failed to initialize data:", error);
+    throw error;
+  }
+}
+
+// Order Counter Operations
+export async function getOrderCounter(): Promise<{ date: string; counter: number }> {
+  try {
+    const counterStr = await redis.get(KEYS.ORDER_COUNTER);
+    if (!counterStr) {
+      // Initialize with today's date and starting counter
+      const today = new Date().toLocaleDateString('fa-IR');
+      return { date: today, counter: 1100 };
+    }
+    return JSON.parse(counterStr);
+  } catch (error) {
+    console.error("Failed to get order counter:", error);
+    const today = new Date().toLocaleDateString('fa-IR');
+    return { date: today, counter: 1100 };
+  }
+}
+
+export async function getNextOrderNumber(): Promise<number> {
+  try {
+    const today = new Date().toLocaleDateString('fa-IR');
+    const counterData = await getOrderCounter();
+    
+    // Check if we need to reset the counter (new day)
+    if (counterData.date !== today) {
+      // New day - reset to 1100
+      const newCounter = { date: today, counter: 1100 };
+      await redis.set(KEYS.ORDER_COUNTER, JSON.stringify(newCounter));
+      return 1100;
+    }
+    
+    // Same day - increment counter
+    const nextNumber = counterData.counter + 1;
+    const updatedCounter = { date: today, counter: nextNumber };
+    await redis.set(KEYS.ORDER_COUNTER, JSON.stringify(updatedCounter));
+    
+    return nextNumber;
+  } catch (error) {
+    console.error("Failed to get next order number:", error);
+    // Fallback to random number in case of error
+    return Math.floor(Math.random() * 900) + 1100;
+  }
+}
+
+export async function resetDailyCounter() {
+  try {
+    const today = new Date().toLocaleDateString('fa-IR');
+    const newCounter = { date: today, counter: 1100 };
+    await redis.set(KEYS.ORDER_COUNTER, JSON.stringify(newCounter));
+    console.log(`✅ Daily counter reset to 1100 for ${today}`);
+    return true;
+  } catch (error) {
+    console.error("Failed to reset daily counter:", error);
     throw error;
   }
 }

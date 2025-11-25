@@ -143,7 +143,9 @@ function MenuManagementSection() {
   };
 
   if (loading) {
-    return <div className="text-white text-center py-8">در حال بارگذاری...</div>;
+    return (
+      <div className="text-white text-center py-8">در حال بارگذاری...</div>
+    );
   }
 
   return (
@@ -196,9 +198,11 @@ function MenuManagementSection() {
               <p className="text-yellow-400 font-semibold text-sm">
                 موجودی: {item.quantity || 0}
               </p>
-              <p className={`text-xs font-medium ${
-                item.available ? "text-emerald-400" : "text-red-400"
-              }`}>
+              <p
+                className={`text-xs font-medium ${
+                  item.available ? "text-emerald-400" : "text-red-400"
+                }`}
+              >
                 وضعیت: {item.available ? "✓ فعال" : "✗ غیرفعال"}
               </p>
             </div>
@@ -471,6 +475,124 @@ function MenuManagementSection() {
   );
 }
 
+function CounterStatusWidget() {
+  const [counterData, setCounterData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [resetting, setResetting] = useState(false);
+
+  const fetchCounterStatus = async () => {
+    try {
+      const response = await fetch("/api/admin/counter/reset", {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setCounterData(data.counter);
+      }
+    } catch (error) {
+      console.error("Failed to fetch counter status:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetCounter = async () => {
+    if (!confirm("آیا مطمئن هستید که می‌خواهید شمارنده را ریست کنید؟")) return;
+
+    try {
+      setResetting(true);
+      const response = await fetch("/api/admin/counter/reset", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+        },
+      });
+
+      if (response.ok) {
+        await fetchCounterStatus();
+        alert("شمارنده با موفقیت ریست شد");
+      }
+    } catch (error) {
+      console.error("Failed to reset counter:", error);
+      alert("خطا در ریست کردن شمارنده");
+    } finally {
+      setResetting(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCounterStatus();
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchCounterStatus, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl p-6 border border-slate-700/50">
+        <div className="text-white text-center">در حال بارگذاری...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 backdrop-blur-xl rounded-2xl p-6 border border-purple-500/20">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-xl font-bold text-white flex items-center gap-2">
+          <span className="text-2xl">🔢</span>
+          وضعیت شمارنده سفارشات
+        </h3>
+        <button
+          onClick={fetchCounterStatus}
+          className="p-2 bg-slate-700/50 hover:bg-slate-600/50 text-white rounded-lg transition-colors"
+          title="بروزرسانی"
+        >
+          <RefreshCw className="w-4 h-4" />
+        </button>
+      </div>
+
+      {counterData && (
+        <div className="space-y-3">
+          <div className="bg-slate-700/30 rounded-xl p-4">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-slate-400">تاریخ:</span>
+              <span className="text-white font-bold">{counterData.date}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-400">آخرین شماره:</span>
+              <span className="text-purple-400 font-bold text-2xl">
+                {counterData.counter}
+              </span>
+            </div>
+          </div>
+
+          <div className="bg-blue-500/10 rounded-xl p-3 border border-blue-500/20">
+            <p className="text-blue-300 text-sm">
+              ℹ️ شمارنده هر شب به طور خودکار به 1100 ریست می‌شود
+            </p>
+          </div>
+
+          <button
+            onClick={handleResetCounter}
+            disabled={resetting}
+            className="w-full px-4 py-3 bg-red-500/10 hover:bg-red-500/20 disabled:opacity-50 text-red-400 rounded-xl transition-colors border border-red-500/20 font-medium"
+          >
+            {resetting ? "در حال ریست..." : "ریست دستی شمارنده"}
+          </button>
+
+          <div className="bg-yellow-500/10 rounded-xl p-3 border border-yellow-500/20">
+            <p className="text-yellow-300 text-xs">
+              ⚠️ فقط در صورت نیاز از ریست دستی استفاده کنید
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Main Admin Panel Component
 export default function RestaurantAdminPanel() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -689,46 +811,51 @@ export default function RestaurantAdminPanel() {
               </div>
             </div>
 
-            <div className="bg-slate-800/50 backdrop-blur-xl rounded-3xl p-6 border border-slate-700/50">
-              <h2 className="text-xl font-bold text-white mb-4">
-                آخرین سفارشات
-              </h2>
-              <div className="space-y-3">
-                {orders.slice(0, 5).map((order) => {
-                  const statusConfig = getStatusConfig(order.status);
-                  const StatusIcon = statusConfig.icon;
-                  return (
-                    <div
-                      key={order.id}
-                      className="flex items-center justify-between bg-slate-700/30 rounded-xl p-4"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`w-10 h-10 bg-${statusConfig.color}-500/10 rounded-lg flex items-center justify-center border border-${statusConfig.color}-500/20`}
-                        >
-                          <StatusIcon
-                            className={`w-5 h-5 text-${statusConfig.color}-400`}
-                          />
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+              <div className="xl:col-span-2 bg-slate-800/50 backdrop-blur-xl rounded-3xl p-6 border border-slate-700/50">
+                <h2 className="text-xl font-bold text-white mb-4">
+                  آخرین سفارشات
+                </h2>
+                <div className="space-y-3">
+                  {orders.slice(0, 5).map((order) => {
+                    const statusConfig = getStatusConfig(order.status);
+                    const StatusIcon = statusConfig.icon;
+                    return (
+                      <div
+                        key={order.id}
+                        className="flex items-center justify-between bg-slate-700/30 rounded-xl p-4"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`w-10 h-10 bg-${statusConfig.color}-500/10 rounded-lg flex items-center justify-center border border-${statusConfig.color}-500/20`}
+                          >
+                            <StatusIcon
+                              className={`w-5 h-5 text-${statusConfig.color}-400`}
+                            />
+                          </div>
+                          <div>
+                            <p className="text-white font-semibold">
+                              {order.id}
+                            </p>
+                            <p className="text-slate-400 text-sm">
+                              {order.studentName}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-white font-semibold">{order.id}</p>
-                          <p className="text-slate-400 text-sm">
-                            {order.studentName}
+                        <div className="text-left">
+                          <p
+                            className={`text-sm font-medium text-${statusConfig.color}-400`}
+                          >
+                            {statusConfig.label}
                           </p>
+                          <p className="text-slate-400 text-xs">{order.time}</p>
                         </div>
                       </div>
-                      <div className="text-left">
-                        <p
-                          className={`text-sm font-medium text-${statusConfig.color}-400`}
-                        >
-                          {statusConfig.label}
-                        </p>
-                        <p className="text-slate-400 text-xs">{order.time}</p>
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
+              <CounterStatusWidget />
             </div>
           </div>
         )}

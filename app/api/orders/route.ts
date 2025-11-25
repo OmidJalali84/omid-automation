@@ -6,6 +6,7 @@ import {
   getMenu,
   setMenu,
   addToPrintQueue,
+  getNextOrderNumber, // NEW: Import the new function
 } from "@/lib/db/kv";
 
 function generateOrderId() {
@@ -15,9 +16,7 @@ function generateOrderId() {
   return `ORD-${year}-${number}`;
 }
 
-function generateKitchenNumber() {
-  return Math.floor(Math.random() * 900) + 100;
-}
+// REMOVED: generateKitchenNumber() - will use getNextOrderNumber() instead
 
 export async function GET() {
   try {
@@ -84,10 +83,13 @@ export async function POST(request: NextRequest) {
 
     await setMenu(restaurantId, restaurantMenu);
 
+    // Get next sequential kitchen number (NEW)
+    const kitchenNumber = await getNextOrderNumber();
+
     // Create order
     const newOrder = {
       id: generateOrderId(),
-      kitchenNumber: generateKitchenNumber(),
+      kitchenNumber, // NOW USING SEQUENTIAL NUMBER
       studentId: studentId || "4021101000",
       studentName: studentName || "کاربر سیستم",
       restaurant,
@@ -115,6 +117,8 @@ export async function POST(request: NextRequest) {
 
     // Add to print queue
     await addToPrintQueue(newOrder);
+
+    console.log(`✅ Order created with kitchen number: ${kitchenNumber}`);
 
     return NextResponse.json(
       { success: true, order: newOrder },

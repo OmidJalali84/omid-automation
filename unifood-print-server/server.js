@@ -19,11 +19,31 @@ const POLL_INTERVAL = 2000; // Check every 2 seconds
 app.use(cors());
 app.use(express.json());
 
+// ✅ Prevent concurrent polling
+let isProcessing = false;
+
 // Generate HTML from Order Data
 function generateReceiptHTML(order) {
   const orderNum = order.id || "ORD-2025-000001";
-  const date = order.date || new Date().toLocaleDateString("fa-IR");
-  const time = order.time || new Date().toLocaleTimeString("fa-IR");
+
+  // ✅ Fix time formatting with seconds
+  const now = new Date();
+  const date =
+    order.date ||
+    now.toLocaleDateString("fa-IR", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+  const time =
+    order.time ||
+    now.toLocaleTimeString("fa-IR", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    });
+
   const kitchenCode = order.kitchenNumber || "000";
 
   const items = order.items || [];
@@ -214,8 +234,16 @@ async function printHTML(html) {
   });
 }
 
-// ✅ NEW: Poll print queue and process orders
+// ✅ IMPROVED: Poll print queue and process ALL orders before next poll
 async function pollPrintQueue() {
+  // Prevent concurrent execution
+  if (isProcessing) {
+    console.log("⏳ Previous print cycle still running, skipping...");
+    return;
+  }
+
+  isProcessing = true;
+
   try {
     const response = await fetch(
       `${MAIN_API_URL}/api/print-queue?restaurantId=${restaurantId}`
@@ -234,6 +262,7 @@ async function pollPrintQueue() {
 
     console.log(`📋 Found ${queue.length} order(s) in print queue`);
 
+    // ✅ Process ALL orders sequentially before returning
     for (const order of queue) {
       try {
         console.log(`🖨️ Printing order: ${order.id}`);
@@ -256,8 +285,13 @@ async function pollPrintQueue() {
         // Don't remove from queue if printing failed - will retry next poll
       }
     }
+
+    console.log(`✅ Completed printing ${queue.length} order(s)`);
   } catch (error) {
     console.error("❌ Polling error:", error.message);
+  } finally {
+    // ✅ Always release the lock
+    isProcessing = false;
   }
 }
 
@@ -268,6 +302,7 @@ app.get("/health", (req, res) => {
     restaurant: restaurantId,
     printer: `${printerIP}:${printerPort}`,
     uptime: process.uptime(),
+    isProcessing: isProcessing,
   });
 });
 

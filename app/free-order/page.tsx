@@ -31,7 +31,7 @@ export default function FreeOrderSelectPage() {
           {restaurantList.map((r) => (
             <Link
               key={r.key}
-              href={`/free-order/${r.key}`}
+              href={`/menu/${r.key}`}
               className="bg-slate-800/50 backdrop-blur-xl rounded-3xl p-6 border border-slate-700/50 hover:border-emerald-500/50 transition-all group"
             >
               <div className="flex items-center justify-between mb-4">
