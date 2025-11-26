@@ -41,13 +41,15 @@ export default function LoginPage() {
           <div className="w-20 h-20 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-2xl shadow-emerald-500/50">
             <span className="text-4xl">🍴</span>
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">سامانه امید</h1>
-          <p className="text-slate-400">امید</p>
+          <h1 className="text-3xl font-bold text-white mb-2">یونی فود</h1>
+          {/* <p className="text-slate-400">امید</p> */}
         </div>
 
         {/* Login Card */}
         <div className="bg-slate-800/50 backdrop-blur-xl rounded-3xl p-8 border border-slate-700/50 shadow-2xl">
-          <h2 className="text-2xl font-bold text-white mb-6 text-center">ورود به سامانه</h2>
+          <h2 className="text-2xl font-bold text-white mb-6 text-center">
+            ورود به سامانه
+          </h2>
 
           <form onSubmit={handleLogin} className="space-y-5">
             {/* Student ID Input */}
@@ -77,7 +79,7 @@ export default function LoginPage() {
               </label>
               <div className="relative">
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="رمز عبور خود را وارد کنید"
@@ -92,7 +94,7 @@ export default function LoginPage() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
                 >
-                  {showPassword ? '👁️' : '👁️‍🗨️'}
+                  {showPassword ? "👁️" : "👁️‍🗨️"}
                 </button>
               </div>
             </div>
@@ -106,7 +108,10 @@ export default function LoginPage() {
                 />
                 <span>مرا به خاطر بسپار</span>
               </label>
-              <a href="#" className="text-emerald-400 hover:text-emerald-300 transition-colors">
+              <a
+                href="#"
+                className="text-emerald-400 hover:text-emerald-300 transition-colors"
+              >
                 فراموشی رمز عبور
               </a>
             </div>
@@ -152,8 +157,11 @@ export default function LoginPage() {
           {/* Sign Up Link */}
           <div className="text-center">
             <p className="text-slate-400 text-sm">
-              حساب کاربری ندارید؟{' '}
-              <a href="#" className="text-emerald-400 hover:text-emerald-300 font-medium transition-colors">
+              حساب کاربری ندارید؟{" "}
+              <a
+                href="#"
+                className="text-emerald-400 hover:text-emerald-300 font-medium transition-colors"
+              >
                 ثبت‌نام کنید
               </a>
             </p>
@@ -172,15 +180,24 @@ export default function LoginPage() {
 
         {/* Footer Links */}
         <div className="mt-8 flex justify-center gap-6 text-sm">
-          <a href="#" className="text-slate-500 hover:text-slate-300 transition-colors">
+          <a
+            href="#"
+            className="text-slate-500 hover:text-slate-300 transition-colors"
+          >
             راهنما
           </a>
           <span className="text-slate-700">|</span>
-          <a href="#" className="text-slate-500 hover:text-slate-300 transition-colors">
+          <a
+            href="#"
+            className="text-slate-500 hover:text-slate-300 transition-colors"
+          >
             پشتیبانی
           </a>
           <span className="text-slate-700">|</span>
-          <a href="#" className="text-slate-500 hover:text-slate-300 transition-colors">
+          <a
+            href="#"
+            className="text-slate-500 hover:text-slate-300 transition-colors"
+          >
             قوانین
           </a>
         </div>

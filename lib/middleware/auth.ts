@@ -1,9 +1,15 @@
 // lib/middleware/auth.ts
-import { verify } from "jsonwebtoken";
+import { jwtVerify } from "jose";
 import { NextRequest, NextResponse } from "next/server";
 
-const JWT_SECRET =
-  process.env.JWT_SECRET || "your-secret-key-change-in-production";
+// ✅ FIXED Issue #5: No fallback secret
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+  throw new Error("CRITICAL: JWT_SECRET environment variable must be set");
+}
+
+const secret = new TextEncoder().encode(JWT_SECRET);
 
 export interface AuthPayload {
   username: string;
@@ -15,17 +21,33 @@ export async function verifyAuth(
   request: NextRequest
 ): Promise<AuthPayload | null> {
   try {
-    const authHeader = request.headers.get("authorization");
+    // ✅ FIXED Issue #2: Read from httpOnly cookie instead of Authorization header
+    const token = request.cookies.get("admin_token")?.value;
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    if (!token) {
       return null;
     }
 
-    const token = authHeader.substring(7);
-    const decoded = verify(token, JWT_SECRET) as AuthPayload;
+    // ✅ Use jose for verification (more secure than jsonwebtoken)
+    const { payload } = await jwtVerify(token, secret);
 
-    return decoded;
+    // ✅ Validate payload structure
+    if (
+      !payload.username ||
+      !payload.restaurantId ||
+      payload.role !== "admin"
+    ) {
+      console.warn("⚠️ Invalid token payload structure");
+      return null;
+    }
+
+    return {
+      username: payload.username as string,
+      restaurantId: payload.restaurantId as string,
+      role: payload.role as string,
+    };
   } catch (error) {
+    console.error("❌ Token verification failed:", error);
     return null;
   }
 }

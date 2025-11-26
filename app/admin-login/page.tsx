@@ -19,15 +19,14 @@ export default function AdminLogin() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
+        credentials: "include", // ✅ Include cookies
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        // Store auth token and restaurant info
-        localStorage.setItem("adminToken", data.token);
-        localStorage.setItem("restaurantId", data.restaurantId);
-        localStorage.setItem("restaurantName", data.restaurantName);
+        // ✅ REMOVED: No more localStorage manipulation
+        // Token is now stored in httpOnly cookie by server
 
         // Redirect to admin panel
         window.location.href = "/admin-panel";
@@ -41,11 +40,11 @@ export default function AdminLogin() {
     }
   };
 
-const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-  if (e.key === "Enter" && username && password) {
-    handleLogin();
-  }
-};
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && username && password) {
+      handleLogin();
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
@@ -88,6 +87,7 @@ const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
                   onKeyPress={handleKeyPress}
                   placeholder="نام کاربری خود را وارد کنید"
                   className="w-full pr-11 pl-4 py-3 bg-slate-700/50 text-white rounded-xl border border-slate-600/50 focus:border-emerald-500/50 focus:outline-none transition-colors"
+                  autoComplete="username"
                 />
               </div>
             </div>
@@ -106,10 +106,12 @@ const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
                   onKeyPress={handleKeyPress}
                   placeholder="رمز عبور خود را وارد کنید"
                   className="w-full pr-11 pl-12 py-3 bg-slate-700/50 text-white rounded-xl border border-slate-600/50 focus:border-emerald-500/50 focus:outline-none transition-colors"
+                  autoComplete="current-password"
                 />
                 <button
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                  type="button"
                 >
                   {showPassword ? (
                     <EyeOff className="w-5 h-5" />
@@ -129,17 +131,8 @@ const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
               {isLoading ? "در حال ورود..." : "ورود به پنل"}
             </button>
           </div>
-          <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50 mt-6">
-            <p className="text-slate-400 text-xs mb-2">حساب‌های آزمایشی:</p>
-            <div className="flex flex-wrap gap-2 justify-center">
-              <code className="text-emerald-400 text-xs bg-slate-900/50 px-2 py-1 rounded">
-                Amiral2025!
-              </code>
-              <code className="text-emerald-400 text-xs bg-slate-900/50 px-2 py-1 rounded">
-                amiralmomenin_admin
-              </code>
-            </div>
-          </div>
+
+          {/* ✅ REMOVED: Test credentials box - security issue #23 */}
 
           {/* Info Box */}
           <div className="mt-6 bg-blue-500/10 border border-blue-500/20 rounded-xl p-4">
