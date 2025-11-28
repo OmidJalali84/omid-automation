@@ -1,31 +1,7 @@
-// lib/db/kv.ts
 import { createClient } from "redis";
 
-// ✅ FIXED Issue #13: Secure Redis connection
-const REDIS_URL = process.env.REDIS_URL;
-
-if (!REDIS_URL) {
-  throw new Error("CRITICAL: REDIS_URL environment variable must be set");
-}
-
-// ✅ Configure secure Redis connection
-const redisConfig: any = {
-  url: REDIS_URL,
-};
-
-// ✅ Enable TLS for production (Redis Cloud, AWS ElastiCache, etc.)
-if (process.env.NODE_ENV === "production" || process.env.REDIS_TLS === "true") {
-  redisConfig.socket = {
-    tls: true,
-    rejectUnauthorized: true, // Verify certificates
-  };
-}
-
-const redis = await createClient(redisConfig).connect();
-
-redis.on("error", (err) => console.error("Redis Client Error:", err));
-redis.on("connect", () => console.log("✅ Redis connected"));
-redis.on("disconnect", () => console.warn("⚠️ Redis disconnected"));
+console.log(process.env.REDIS_URL);
+const redis = await createClient({ url: process.env.REDIS_URL }).connect();
 
 // Keys for different data types
 const KEYS = {
@@ -35,7 +11,7 @@ const KEYS = {
   RESTAURANTS: "restaurants",
   PRINT_QUEUE: "print-queue",
   ROADMAP_STATUS: "roadmap-status",
-  ORDER_COUNTER: "order-counter",
+  ORDER_COUNTER: "order-counter", // Stores { date: string, counter: number }
 };
 
 // Menu Operations
@@ -273,7 +249,69 @@ export async function toggleRoadmapTask(key: string) {
   return { status: nextStatus };
 }
 
-// ✅ FIXED Issue #12: Atomic counter operations
+// Initialize data (run once to migrate from JSON)
+export async function initializeData() {
+  try {
+    // Initialize restaurants
+    const restaurants = {
+      amiralmomenin: {
+        id: "amiralmomenin",
+        name: "امیرالمومنین",
+        description: "سلف سرویس اصلی دانشگاه با ظرفیت بالا و سرویس‌دهی سریع",
+      },
+      kaktus: {
+        id: "kaktus",
+        name: "کاکتوس",
+        description: "فست‌فود دانشجویی با سرو سریع و تنوع بالا",
+      },
+      zitoun: {
+        id: "zitoun",
+        name: "زیتون",
+        description: "غذاهای ایرانی خانگی با کیفیت ثابت",
+      },
+      toranj: {
+        id: "toranj",
+        name: "ترنج",
+        description: "سلامت‌محور با سالادها و نوشیدنی‌های تازه",
+      },
+    };
+
+    await redis.set(KEYS.RESTAURANTS, JSON.stringify(restaurants));
+
+    // Initialize admins
+    const admins = [
+      {
+        username: "amiralmomenin_admin",
+        passwordHash:
+          "$2a$10$30r4FdfRaDAlTHBdLgLquO.2d2/yD6YlPCeis23dElNHofxmllKOm",
+        restaurantId: "amiralmomenin",
+        restaurantName: "امیرالمومنین",
+        createdAt: "2025-11-13T00:00:00.000Z",
+      },
+    ];
+
+    await redis.set(KEYS.ADMINS, JSON.stringify(admins));
+
+    // Initialize empty orders and print queue
+    await redis.set(KEYS.ORDERS, JSON.stringify([]));
+    await redis.set(KEYS.PRINT_QUEUE, JSON.stringify([]));
+    await redis.set(KEYS.ROADMAP_STATUS, JSON.stringify({}));
+
+    // Initialize empty menus for each restaurant
+    await redis.set(KEYS.MENU("amiralmomenin"), JSON.stringify([]));
+    await redis.set(KEYS.MENU("kaktus"), JSON.stringify([]));
+    await redis.set(KEYS.MENU("zitoun"), JSON.stringify([]));
+    await redis.set(KEYS.MENU("toranj"), JSON.stringify([]));
+
+    console.log("✅ Data initialized successfully");
+    return true;
+  } catch (error) {
+    console.error("Failed to initialize data:", error);
+    throw error;
+  }
+}
+
+// Order Counter Operations
 export async function getOrderCounter(): Promise<{
   date: string;
   counter: number;
@@ -281,6 +319,7 @@ export async function getOrderCounter(): Promise<{
   try {
     const counterStr = await redis.get(KEYS.ORDER_COUNTER);
     if (!counterStr) {
+      // Initialize with today's date and starting counter
       const today = new Date().toLocaleDateString("fa-IR");
       return { date: today, counter: 1100 };
     }
@@ -292,50 +331,41 @@ export async function getOrderCounter(): Promise<{
   }
 }
 
-// ✅ FIXED Issue #12: Use Redis atomic INCR for thread-safe counter
 export async function getNextOrderNumber(): Promise<number> {
   try {
     const today = new Date().toLocaleDateString("fa-IR");
-    const dateKey = `order-counter:date`;
-    const counterKey = `order-counter:value`;
+    const counterData = await getOrderCounter();
 
-    // ✅ Check if we need to reset (new day)
-    const storedDate = await redis.get(dateKey);
-
-    if (storedDate !== today) {
-      // New day - reset atomically
-      await redis.set(dateKey, today);
-      await redis.set(counterKey, "1100");
+    // Check if we need to reset the counter (new day)
+    if (counterData.date !== today) {
+      // New day - reset to 1100
+      const newCounter = { date: today, counter: 1100 };
+      await redis.set(KEYS.ORDER_COUNTER, JSON.stringify(newCounter));
       return 1100;
     }
 
-    // ✅ Use atomic INCR - thread-safe!
-    const nextNumber = await redis.incr(counterKey);
+    // Same day - increment counter
+    const nextNumber = counterData.counter + 1;
+    const updatedCounter = { date: today, counter: nextNumber };
+    await redis.set(KEYS.ORDER_COUNTER, JSON.stringify(updatedCounter));
 
     return nextNumber;
   } catch (error) {
     console.error("Failed to get next order number:", error);
-    // Fallback to timestamp-based number
-    return 1100 + (Date.now() % 9000);
+    // Fallback to random number in case of error
+    return Math.floor(Math.random() * 900) + 1100;
   }
 }
 
 export async function resetDailyCounter() {
   try {
     const today = new Date().toLocaleDateString("fa-IR");
-    await redis.set(`order-counter:date`, today);
-    await redis.set(`order-counter:value`, "1100");
+    const newCounter = { date: today, counter: 1100 };
+    await redis.set(KEYS.ORDER_COUNTER, JSON.stringify(newCounter));
     console.log(`✅ Daily counter reset to 1100 for ${today}`);
     return true;
   } catch (error) {
     console.error("Failed to reset daily counter:", error);
     throw error;
   }
-}
-
-// Initialize data (use scripts/init-database.ts instead)
-export async function initializeData() {
-  throw new Error(
-    "❌ Do not use this function. Use scripts/init-database.ts instead and DELETE app/api/init-data"
-  );
 }

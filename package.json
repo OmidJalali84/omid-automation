@@ -13,6 +13,7 @@
     "@vercel/kv": "^3.0.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "iconv-lite": "^0.7.0",
     "jose": "^6.1.2",
